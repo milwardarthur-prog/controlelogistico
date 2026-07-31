@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ===== Animação de borda piscante para cards novos (painel TV) ===== */
+@keyframes piscar-amarelo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(250, 204, 21, 0);
+    border-color: #facc15;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.9);
+    border-color: #fde047;
+  }
+}
+.card-novo {
+  animation: piscar-amarelo 1s ease-in-out infinite;
+}
+
+/* ===== Fita zebrada de CANCELADO (painel TV e cards) ===== */
+.fita-cancelado {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #dc2626,
+    #dc2626 20px,
+    #ffffff 20px,
+    #ffffff 40px
+  );
+}
+
+/* ===== CSS de impressão A4 ===== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  /* Oculta tudo que não faz parte da área de impressão */
+  aside,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .print-area {
+    display: block !important;
+  }
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

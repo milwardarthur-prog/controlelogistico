@@ -1,0 +1,52 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  TECNICO
+}
+
+enum TipoCard {
+  ENTREGA
+  RETIRADA
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(TECNICO)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Card {
+  id          String    @id @default(cuid())
+  tipo        TipoCard  @default(ENTREGA)
+  data        DateTime
+  horario     String
+  cliente     String
+  equipamento String
+  tensao      String?
+  veiculo     String?
+  periodo     String?
+  franquia    String?
+  local       String
+  combustivel String?
+  instalacao  String?
+  acessorios  String?
+  obs         String?
+  motorista   String?
+  ajudante    String?
+  cancelado   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

@@ -1,0 +1,296 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  Pencil,
+  Ban,
+  RotateCcw,
+  Loader2,
+  Package,
+  Truck,
+  Save,
+} from "lucide-react";
+import { formatarData, nomeDiaSemana, chaveData } from "@/lib/utils";
+
+type Card = {
+  id: string;
+  tipo: "ENTREGA" | "RETIRADA";
+  data: string;
+  horario: string;
+  cliente: string;
+  equipamento: string;
+  tensao?: string | null;
+  veiculo?: string | null;
+  periodo?: string | null;
+  franquia?: string | null;
+  local: string;
+  combustivel?: string | null;
+  instalacao?: string | null;
+  acessorios?: string | null;
+  obs?: string | null;
+  motorista?: string | null;
+  ajudante?: string | null;
+  cancelado: boolean;
+  createdAt: string;
+};
+
+// Retorna intervalo [segunda, domingo] da semana atual (offset em semanas)
+function intervaloSemana(offsetSemanas: number) {
+  const hoje = new Date();
+  const dia = hoje.getUTCDay(); // 0=dom
+  const diffParaSegunda = dia === 0 ? -6 : 1 - dia;
+  const segunda = new Date(
+    Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate())
+  );
+  segunda.setUTCDate(segunda.getUTCDate() + diffParaSegunda + offsetSemanas * 7);
+  const domingo = new Date(segunda);
+  domingo.setUTCDate(segunda.getUTCDate() + 6);
+  return {
+    inicio: segunda.toISOString().slice(0, 10),
+    fim: domingo.toISOString().slice(0, 10),
+  };
+}
+
+export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
+  const [offset, setOffset] = useState(0);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  const { inicio, fim } = useMemo(() => intervaloSemana(offset), [offset]);
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    const res = await fetch(`/api/cards?inicio=${inicio}&fim=${fim}`);
+    const dados = await res.json();
+    setCards(dados);
+    setCarregando(false);
+  }, [inicio, fim]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  // Agrupa cards por data
+  const grupos = useMemo(() => {
+    const map = new Map<string, Card[]>();
+    for (const c of cards) {
+      const k = chaveData(c.data);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(c);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [cards]);
+
+  async function cancelarToggle(card: Card) {
+    await fetch(`/api/cards/${card.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cancelado: !card.cancelado }),
+    });
+    carregar();
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500">
+            {formatarData(inicio)} — {formatarData(fim)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOffset(0)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              offset === 0 ? "bg-slate-900 text-white" : "bg-white text-slate-600 border border-slate-300"
+            }`}
+          >
+            Semana atual
+          </button>
+          <button
+            onClick={() => setOffset(1)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              offset === 1 ? "bg-slate-900 text-white" : "bg-white text-slate-600 border border-slate-300"
+            }`}
+          >
+            Próxima semana
+          </button>
+        </div>
+      </div>
+
+      {carregando ? (
+        <div className="flex items-center gap-2 text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+        </div>
+      ) : grupos.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-500">
+          Nenhum card para o período selecionado.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {grupos.map(([data, lista]) => (
+            <div key={data}>
+              <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-700">
+                {nomeDiaSemana(data)} — {formatarData(data)}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {lista.map((card) => (
+                  <CardBox
+                    key={card.id}
+                    card={card}
+                    role={role}
+                    onCancelar={() => cancelarToggle(card)}
+                    onSalvar={carregar}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardBox({
+  card,
+  role,
+  onCancelar,
+  onSalvar,
+}: {
+  card: Card;
+  role: "ADMIN" | "TECNICO";
+  onCancelar: () => void;
+  onSalvar: () => void;
+}) {
+  const [motorista, setMotorista] = useState(card.motorista ?? "");
+  const [ajudante, setAjudante] = useState(card.ajudante ?? "");
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvarEquipe() {
+    setSalvando(true);
+    await fetch(`/api/cards/${card.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motorista, ajudante }),
+    });
+    setSalvando(false);
+    onSalvar();
+  }
+
+  return (
+    <div
+      className={`relative rounded-xl border bg-white p-4 shadow-sm ${
+        card.cancelado ? "border-red-200" : "border-slate-200"
+      }`}
+    >
+      {card.cancelado && (
+        <span className="absolute right-3 top-3 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+          CANCELADO
+        </span>
+      )}
+      <div className="mb-2 flex items-center gap-2">
+        {card.tipo === "ENTREGA" ? (
+          <Truck className="h-4 w-4 text-emerald-600" />
+        ) : (
+          <Package className="h-4 w-4 text-amber-600" />
+        )}
+        <span className="text-xs font-semibold uppercase text-slate-500">
+          {card.tipo}
+        </span>
+        <span className="ml-auto text-sm font-bold text-slate-900">
+          {card.horario}
+        </span>
+      </div>
+
+      <p className="text-base font-bold text-slate-900">{card.cliente}</p>
+      <p className="text-sm text-slate-600">{card.equipamento}</p>
+      <p className="mt-1 text-xs text-slate-500">{card.local}</p>
+
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-slate-500">
+        {card.veiculo && <span>Veículo: {card.veiculo}</span>}
+        {card.tensao && <span>Tensão: {card.tensao}</span>}
+        {card.periodo && <span>Período: {card.periodo}</span>}
+        {card.franquia && <span>Franquia: {card.franquia}</span>}
+      </div>
+
+      {card.acessorios && (
+        <p className="mt-2 whitespace-pre-line rounded bg-slate-50 p-2 text-xs text-slate-600">
+          <span className="font-semibold">Acessórios: </span>
+          {card.acessorios}
+        </p>
+      )}
+      {card.obs && (
+        <p className="mt-1 text-xs italic text-slate-500">Obs: {card.obs}</p>
+      )}
+
+      {/* Campos de equipe */}
+      <div className="mt-3 border-t border-slate-100 pt-3">
+        {role === "TECNICO" ? (
+          <div className="space-y-2">
+            <input
+              value={motorista}
+              onChange={(e) => setMotorista(e.target.value)}
+              placeholder="Motorista"
+              className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+            />
+            <input
+              value={ajudante}
+              onChange={(e) => setAjudante(e.target.value)}
+              placeholder="Ajudante"
+              className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+            />
+            <button
+              onClick={salvarEquipe}
+              disabled={salvando}
+              className="flex w-full items-center justify-center gap-1 rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white disabled:opacity-60"
+            >
+              {salvando ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Save className="h-3 w-3" />
+              )}
+              Salvar equipe
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-500">
+            <p>Motorista: {card.motorista || "—"}</p>
+            <p>Ajudante: {card.ajudante || "—"}</p>
+          </div>
+        )}
+      </div>
+
+      {role === "ADMIN" && (
+        <div className="mt-3 flex gap-2">
+          <Link
+            href={`/cards/${card.id}/editar`}
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Pencil className="h-3 w-3" /> Editar
+          </Link>
+          <button
+            onClick={onCancelar}
+            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs font-medium ${
+              card.cancelado
+                ? "border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                : "border border-red-300 text-red-700 hover:bg-red-50"
+            }`}
+          >
+            {card.cancelado ? (
+              <>
+                <RotateCcw className="h-3 w-3" /> Reativar
+              </>
+            ) : (
+              <>
+                <Ban className="h-3 w-3" /> Cancelar
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
