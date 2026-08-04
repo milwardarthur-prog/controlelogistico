@@ -14,7 +14,10 @@ enum Role {
 }
 
 enum TipoCard {
+  ACOMPANHAMENTO_TECNICO
+  INSTALACAO
   ENTREGA
+  DESINSTALACAO
   RETIRADA
 }
 

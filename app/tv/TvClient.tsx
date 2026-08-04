@@ -1,11 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatarData, nomeDiaSemana, chaveData, isCardNovo } from "@/lib/utils";
+import Image from "next/image";
+import {
+  formatarData,
+  nomeDiaSemana,
+  chaveData,
+  isCardPiscando,
+  labelTipo,
+  TIPO_BADGE_TV,
+  type TipoCard,
+} from "@/lib/utils";
 
 type Card = {
   id: string;
-  tipo: "ENTREGA" | "RETIRADA";
+  tipo: TipoCard;
   data: string;
   horario: string;
   cliente: string;
@@ -145,30 +154,35 @@ function LinhaDia({
 }
 
 function TvCard({ card }: { card: Card }) {
-  const novo = !card.cancelado && isCardNovo(card.createdAt);
+  const piscando = !card.cancelado && isCardPiscando(card.createdAt, card.data);
 
   return (
     <div
       className={`relative flex flex-1 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-3 ${
-        novo ? "card-novo" : "border-gray-700"
+        piscando ? "card-novo" : "border-gray-700"
       }`}
     >
-      {/* Overlay de CANCELADO com fita zebrada */}
+      {/* Overlay de CANCELADO com carimbo */}
       {card.cancelado && (
-        <div className="fita-cancelado pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-70">
-          <span className="rotate-[-12deg] rounded bg-black/80 px-4 py-1 text-3xl font-black tracking-widest text-white">
-            CANCELADO
-          </span>
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <div className="relative h-full w-full">
+            <Image
+              src="/cancelado.png"
+              alt="CANCELADO"
+              fill
+              className="object-contain p-2 drop-shadow-lg"
+              sizes="50vw"
+              priority
+            />
+          </div>
         </div>
       )}
 
       <div className="mb-1 flex items-center justify-between">
         <span
-          className={`rounded px-2 py-0.5 text-xs font-bold ${
-            card.tipo === "ENTREGA" ? "bg-emerald-600" : "bg-amber-600"
-          }`}
+          className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
         >
-          {card.tipo}
+          {labelTipo(card.tipo)}
         </span>
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>

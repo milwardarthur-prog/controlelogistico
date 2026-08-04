@@ -66,6 +66,19 @@ body {
   }
   .print-area {
     display: block !important;
+    /* Fonte maior para melhor legibilidade no papel */
+    font-size: 13pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+  }
+  .print-area td,
+  .print-area th {
+    font-size: 12.5pt !important;
+  }
+  /* Garante que fundos e bordas sejam impressos */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .break-inside-avoid {
     break-inside: avoid;

@@ -7,15 +7,22 @@ import {
   Ban,
   RotateCcw,
   Loader2,
-  Package,
-  Truck,
+  Trash2,
+  Tag,
   Save,
 } from "lucide-react";
-import { formatarData, nomeDiaSemana, chaveData } from "@/lib/utils";
+import {
+  formatarData,
+  nomeDiaSemana,
+  chaveData,
+  labelTipo,
+  TIPO_PONTO,
+  type TipoCard,
+} from "@/lib/utils";
 
 type Card = {
   id: string;
-  tipo: "ENTREGA" | "RETIRADA";
+  tipo: TipoCard;
   data: string;
   horario: string;
   cliente: string;
@@ -91,6 +98,16 @@ export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
     carregar();
   }
 
+  // Exclui permanentemente o card (para lançamentos duplicados)
+  async function excluir(card: Card) {
+    const ok = window.confirm(
+      `Excluir permanentemente o card de "${card.cliente}"?\n\nEsta ação NÃO pode ser desfeita e o card será removido definitivamente. Para apenas marcar como cancelado (mantendo o histórico), use o botão "Cancelar".`
+    );
+    if (!ok) return;
+    await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
+    carregar();
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -142,6 +159,7 @@ export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
                     card={card}
                     role={role}
                     onCancelar={() => cancelarToggle(card)}
+                    onExcluir={() => excluir(card)}
                     onSalvar={carregar}
                   />
                 ))}
@@ -158,11 +176,13 @@ function CardBox({
   card,
   role,
   onCancelar,
+  onExcluir,
   onSalvar,
 }: {
   card: Card;
   role: "ADMIN" | "TECNICO";
   onCancelar: () => void;
+  onExcluir: () => void;
   onSalvar: () => void;
 }) {
   const [motorista, setMotorista] = useState(card.motorista ?? "");
@@ -192,13 +212,10 @@ function CardBox({
         </span>
       )}
       <div className="mb-2 flex items-center gap-2">
-        {card.tipo === "ENTREGA" ? (
-          <Truck className="h-4 w-4 text-emerald-600" />
-        ) : (
-          <Package className="h-4 w-4 text-amber-600" />
-        )}
+        <span className={`h-2.5 w-2.5 rounded-full ${TIPO_PONTO[card.tipo]}`} />
+        <Tag className="h-3.5 w-3.5 text-slate-400" />
         <span className="text-xs font-semibold uppercase text-slate-500">
-          {card.tipo}
+          {labelTipo(card.tipo)}
         </span>
         <span className="ml-auto text-sm font-bold text-slate-900">
           {card.horario}
@@ -264,30 +281,39 @@ function CardBox({
       </div>
 
       {role === "ADMIN" && (
-        <div className="mt-3 flex gap-2">
-          <Link
-            href={`/cards/${card.id}/editar`}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <Pencil className="h-3 w-3" /> Editar
-          </Link>
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            <Link
+              href={`/cards/${card.id}/editar`}
+              className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Pencil className="h-3 w-3" /> Editar
+            </Link>
+            <button
+              onClick={onCancelar}
+              className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs font-medium ${
+                card.cancelado
+                  ? "border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  : "border border-red-300 text-red-700 hover:bg-red-50"
+              }`}
+            >
+              {card.cancelado ? (
+                <>
+                  <RotateCcw className="h-3 w-3" /> Reativar
+                </>
+              ) : (
+                <>
+                  <Ban className="h-3 w-3" /> Cancelar
+                </>
+              )}
+            </button>
+          </div>
+          {/* Excluir é permanente (diferente de cancelar) — para duplicatas */}
           <button
-            onClick={onCancelar}
-            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs font-medium ${
-              card.cancelado
-                ? "border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                : "border border-red-300 text-red-700 hover:bg-red-50"
-            }`}
+            onClick={onExcluir}
+            className="flex w-full items-center justify-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
           >
-            {card.cancelado ? (
-              <>
-                <RotateCcw className="h-3 w-3" /> Reativar
-              </>
-            ) : (
-              <>
-                <Ban className="h-3 w-3" /> Cancelar
-              </>
-            )}
+            <Trash2 className="h-3 w-3" /> Excluir permanentemente
           </button>
         </div>
       )}

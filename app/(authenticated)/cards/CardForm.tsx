@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
+import { TIPO_LABELS, type TipoCard } from "@/lib/utils";
 
 export type CardData = {
   id?: string;
-  tipo: "ENTREGA" | "RETIRADA";
+  tipo: TipoCard;
   data: string;
   horario: string;
   cliente: string;
@@ -100,8 +101,11 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
             onChange={(e) => set("tipo", e.target.value as CardData["tipo"])}
             className={campo}
           >
-            <option value="ENTREGA">Entrega</option>
-            <option value="RETIRADA">Retirada</option>
+            {(Object.keys(TIPO_LABELS) as TipoCard[]).map((t) => (
+              <option key={t} value={t}>
+                {TIPO_LABELS[t]}
+              </option>
+            ))}
           </select>
         </div>
         <div>

@@ -2,11 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { MESES, formatarData, chaveData } from "@/lib/utils";
+import {
+  MESES,
+  formatarData,
+  chaveData,
+  labelTipo,
+  TIPO_PONTO,
+  TIPO_LABELS,
+  type TipoCard,
+} from "@/lib/utils";
 
 type Card = {
   id: string;
-  tipo: "ENTREGA" | "RETIRADA";
+  tipo: TipoCard;
   data: string;
   horario: string;
   cliente: string;
@@ -123,7 +131,7 @@ export function CalendarioClient() {
                     <span
                       key={c.id}
                       className={`h-1.5 w-1.5 rounded-full ${
-                        c.cancelado ? "bg-red-400" : c.tipo === "ENTREGA" ? "bg-emerald-500" : "bg-amber-500"
+                        c.cancelado ? "bg-red-400" : TIPO_PONTO[c.tipo]
                       }`}
                     />
                   ))}
@@ -139,9 +147,12 @@ export function CalendarioClient() {
         })}
       </div>
 
-      <div className="mt-3 flex gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Entrega</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Retirada</span>
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+        {(Object.keys(TIPO_LABELS) as TipoCard[]).map((t) => (
+          <span key={t} className="flex items-center gap-1">
+            <span className={`h-2 w-2 rounded-full ${TIPO_PONTO[t]}`} /> {TIPO_LABELS[t]}
+          </span>
+        ))}
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> Cancelado</span>
       </div>
 
@@ -170,6 +181,10 @@ export function CalendarioClient() {
                     <span className="font-bold text-slate-900">{c.cliente}</span>
                     <span className="text-sm text-slate-500">{c.horario}</span>
                   </div>
+                  <span className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+                    <span className={`h-2 w-2 rounded-full ${TIPO_PONTO[c.tipo]}`} />
+                    {labelTipo(c.tipo)}
+                  </span>
                   <p className="text-sm text-slate-600">{c.equipamento}</p>
                   <p className="text-xs text-slate-500">{c.local}</p>
                   {c.cancelado && (
