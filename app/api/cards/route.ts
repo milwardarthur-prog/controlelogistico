@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       motorista: body.motorista || null,
       ajudante: body.ajudante || null,
     },
+    include: { createdBy: { select: { name: true } } },
   });
 
   return NextResponse.json(card, { status: 201 });
