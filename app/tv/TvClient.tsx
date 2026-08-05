@@ -8,13 +8,17 @@ import {
   chaveData,
   isCardPiscando,
   labelTipo,
+  labelAtendimento,
   TIPO_BADGE_TV,
+  ATENDIMENTO_BADGE,
   type TipoCard,
+  type TipoAtendimento,
 } from "@/lib/utils";
 
 type Card = {
   id: string;
   tipo: TipoCard;
+  tipoAtendimento: TipoAtendimento;
   data: string;
   horario: string;
   cliente: string;
@@ -25,6 +29,9 @@ type Card = {
   acessorios?: string | null;
   obs?: string | null;
   cancelado: boolean;
+  docOk: boolean;
+  entregaOk: boolean;
+  createdBy?: { name: string } | null;
   createdAt: string;
 };
 
@@ -178,12 +185,19 @@ function TvCard({ card }: { card: Card }) {
         </div>
       )}
 
-      <div className="mb-1 flex items-center justify-between">
-        <span
-          className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
-        >
-          {labelTipo(card.tipo)}
-        </span>
+      <div className="mb-1 flex items-center justify-between gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
+          >
+            {labelTipo(card.tipo)}
+          </span>
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-bold ${ATENDIMENTO_BADGE[card.tipoAtendimento]}`}
+          >
+            {labelAtendimento(card.tipoAtendimento)}
+          </span>
+        </div>
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>
 
@@ -200,6 +214,28 @@ function TvCard({ card }: { card: Card }) {
         )}
         {card.obs && <p className="line-clamp-1 italic text-gray-400">Obs: {card.obs}</p>}
       </div>
+
+      {/* Sinaleiros visuais (sem clique) */}
+      <div className="mt-auto flex items-center gap-3 pt-2 text-xs font-bold">
+        <span className="flex items-center gap-1">
+          <span
+            className={`h-3 w-3 rounded-full ${card.docOk ? "bg-emerald-400" : "bg-yellow-400"}`}
+          />
+          Documentos
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className={`h-3 w-3 rounded-full ${card.entregaOk ? "bg-emerald-400" : "bg-yellow-400"}`}
+          />
+          Entrega/Retirada
+        </span>
+      </div>
+
+      {card.createdBy?.name && (
+        <p className="mt-0.5 text-[10px] text-gray-500">
+          Criado por: {card.createdBy.name}
+        </p>
+      )}
     </div>
   );
 }

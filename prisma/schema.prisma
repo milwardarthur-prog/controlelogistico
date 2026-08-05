@@ -14,11 +14,24 @@ enum Role {
 }
 
 enum TipoCard {
-  ACOMPANHAMENTO_TECNICO
-  INSTALACAO
   ENTREGA
+  ENTREGA_BASE
+  ENTREGA_INST_ACOMP
+  ENTREGA_INST
+  ENTREGA_INST_RETI
+  TROCA
+  INSTALACAO
   DESINSTALACAO
+  ACOMPANHAMENTO_TECNICO
   RETIRADA
+  DEVOLUCAO
+  VISTORIA_BOMBEIROS
+}
+
+enum TipoAtendimento {
+  EVENTO
+  OBRA
+  DESLIGAMENTO
 }
 
 model User {
@@ -27,29 +40,45 @@ model User {
   password  String
   name      String
   role      Role     @default(TECNICO)
+  cards     Card[]   @relation("CardCreator")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Card {
-  id          String    @id @default(cuid())
-  tipo        TipoCard  @default(ENTREGA)
-  data        DateTime
-  horario     String
-  cliente     String
-  equipamento String
-  tensao      String?
-  veiculo     String?
-  periodo     String?
-  franquia    String?
-  local       String
-  combustivel String?
-  instalacao  String?
-  acessorios  String?
-  obs         String?
-  motorista   String?
-  ajudante    String?
-  cancelado   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String          @id @default(cuid())
+  tipo            TipoCard        @default(ENTREGA)
+  tipoAtendimento TipoAtendimento @default(EVENTO)
+  data            DateTime
+  horario         String
+  cliente         String
+  equipamento     String
+  tensao          String?
+  veiculo         String?
+  periodo         String?
+  franquia        String?
+  local           String
+  combustivel     String?
+  instalacao      String?
+  acessorios      String?
+  obs             String?
+  motorista       String?
+  ajudante        String?
+  cancelado       Boolean         @default(false)
+  docOk           Boolean         @default(false)
+  entregaOk       Boolean         @default(false)
+  createdById     String?
+  createdBy       User?           @relation("CardCreator", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model ManutencaoVeiculo {
+  id        String   @id @default(cuid())
+  veiculo   String
+  inicio    DateTime
+  fim       DateTime
+  obs       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

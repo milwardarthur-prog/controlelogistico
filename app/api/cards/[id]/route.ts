@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { TipoCard, Prisma } from "@prisma/client";
+import { TipoCard, TipoAtendimento, Prisma } from "@prisma/client";
+
+const incluirCriador = { createdBy: { select: { name: true } } };
 
 // GET /api/cards/[id] — retorna um card específico
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const card = await prisma.card.findUnique({ where: { id: params.id } });
+  const card = await prisma.card.findUnique({
+    where: { id: params.id },
+    include: incluirCriador,
+  });
   if (!card) {
     return NextResponse.json({ error: "Card não encontrado" }, { status: 404 });
   }
@@ -37,6 +42,8 @@ export async function PUT(
   if (session.user.role === "ADMIN") {
     data = {
       tipo: (body.tipo as TipoCard) || existente.tipo,
+      tipoAtendimento:
+        (body.tipoAtendimento as TipoAtendimento) || existente.tipoAtendimento,
       data: body.data
         ? new Date(body.data + "T00:00:00.000Z")
         : existente.data,
@@ -66,12 +73,15 @@ export async function PUT(
   const card = await prisma.card.update({
     where: { id: params.id },
     data,
+    include: incluirCriador,
   });
 
   return NextResponse.json(card);
 }
 
-// PATCH /api/cards/[id] — alterna o status de cancelamento (somente ADMIN)
+// PATCH /api/cards/[id] — atualiza campos parciais.
+// docOk / entregaOk: qualquer usuário autenticado.
+// cancelado: somente ADMIN.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -80,12 +90,6 @@ export async function PATCH(
   if (!session) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json(
-      { error: "Apenas administradores podem cancelar cards" },
-      { status: 403 }
-    );
-  }
 
   const existente = await prisma.card.findUnique({ where: { id: params.id } });
   if (!existente) {
@@ -93,12 +97,33 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => ({}));
-  const cancelado =
-    typeof body.cancelado === "boolean" ? body.cancelado : !existente.cancelado;
+  const data: Prisma.CardUpdateInput = {};
+
+  if (typeof body.docOk === "boolean") data.docOk = body.docOk;
+  if (typeof body.entregaOk === "boolean") data.entregaOk = body.entregaOk;
+
+  // Alteração de cancelamento é restrita a ADMIN
+  if (typeof body.cancelado === "boolean") {
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Apenas administradores podem cancelar cards" },
+        { status: 403 }
+      );
+    }
+    data.cancelado = body.cancelado;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json(
+      { error: "Nenhum campo válido para atualizar" },
+      { status: 400 }
+    );
+  }
 
   const card = await prisma.card.update({
     where: { id: params.id },
-    data: { cancelado },
+    data,
+    include: incluirCriador,
   });
 
   return NextResponse.json(card);

@@ -8,5 +8,7 @@ export const config = {
     "/cards/:path*",
     "/calendario/:path*",
     "/impressao/:path*",
+    "/historico/:path*",
+    "/manutencao/:path*",
   ],
 };

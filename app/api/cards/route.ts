@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { TipoCard, Prisma } from "@prisma/client";
+import { TipoCard, TipoAtendimento, Prisma } from "@prisma/client";
 
 // GET /api/cards — lista cards, com filtro opcional por intervalo de datas.
 // Rota pública para leitura (usada também pelo painel /tv).
@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
   const cards = await prisma.card.findMany({
     where,
     orderBy: [{ data: "asc" }, { horario: "asc" }],
+    include: { createdBy: { select: { name: true } } },
   });
 
   return NextResponse.json(cards);
@@ -56,6 +57,11 @@ export async function POST(req: NextRequest) {
   const card = await prisma.card.create({
     data: {
       tipo: (body.tipo as TipoCard) || TipoCard.ENTREGA,
+      tipoAtendimento:
+        (body.tipoAtendimento as TipoAtendimento) || TipoAtendimento.EVENTO,
+      createdById: session.user.id,
+      docOk: false,
+      entregaOk: false,
       data: new Date(body.data + "T00:00:00.000Z"),
       horario: body.horario,
       cliente: body.cliente,

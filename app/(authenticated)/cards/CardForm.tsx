@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
-import { TIPO_LABELS, type TipoCard } from "@/lib/utils";
+import {
+  TIPO_LABELS,
+  ATENDIMENTO_LABELS,
+  type TipoCard,
+  type TipoAtendimento,
+} from "@/lib/utils";
 
 export type CardData = {
   id?: string;
   tipo: TipoCard;
+  tipoAtendimento: TipoAtendimento;
   data: string;
   horario: string;
   cliente: string;
@@ -27,6 +33,7 @@ export type CardData = {
 
 const vazio: CardData = {
   tipo: "ENTREGA",
+  tipoAtendimento: "EVENTO",
   data: "",
   horario: "",
   cliente: "",
@@ -104,6 +111,22 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
             {(Object.keys(TIPO_LABELS) as TipoCard[]).map((t) => (
               <option key={t} value={t}>
                 {TIPO_LABELS[t]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={label}>Tipo de Atendimento *</label>
+          <select
+            value={form.tipoAtendimento}
+            onChange={(e) =>
+              set("tipoAtendimento", e.target.value as CardData["tipoAtendimento"])
+            }
+            className={campo}
+          >
+            {(Object.keys(ATENDIMENTO_LABELS) as TipoAtendimento[]).map((t) => (
+              <option key={t} value={t}>
+                {ATENDIMENTO_LABELS[t]}
               </option>
             ))}
           </select>

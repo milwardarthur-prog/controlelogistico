@@ -8,6 +8,8 @@ import {
   PlusCircle,
   Calendar,
   Printer,
+  History,
+  Wrench,
   Tv,
   LogOut,
   Truck,
@@ -28,6 +30,8 @@ export function Sidebar({ role, nome }: Props) {
     { href: "/cards/novo", label: "Novo Card", icon: PlusCircle, roles: ["ADMIN"] },
     { href: "/calendario", label: "Calendário", icon: Calendar, roles: ["ADMIN", "TECNICO"] },
     { href: "/impressao", label: "Impressão", icon: Printer, roles: ["ADMIN"] },
+    { href: "/historico", label: "Histórico", icon: History, roles: ["ADMIN", "TECNICO"] },
+    { href: "/manutencao", label: "Manutenção", icon: Wrench, roles: ["ADMIN", "TECNICO"] },
   ].filter((i) => i.roles.includes(role));
 
   return (

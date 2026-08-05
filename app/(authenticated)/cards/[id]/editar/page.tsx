@@ -21,6 +21,7 @@ export default async function EditarCardPage({
   const inicial = {
     id: card.id,
     tipo: card.tipo,
+    tipoAtendimento: card.tipoAtendimento,
     data: card.data.toISOString().slice(0, 10),
     horario: card.horario,
     cliente: card.cliente,

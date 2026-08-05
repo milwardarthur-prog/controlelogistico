@@ -16,13 +16,17 @@ import {
   nomeDiaSemana,
   chaveData,
   labelTipo,
-  TIPO_PONTO,
+  labelAtendimento,
+  TIPO_BADGE_TV,
+  ATENDIMENTO_BADGE,
   type TipoCard,
+  type TipoAtendimento,
 } from "@/lib/utils";
 
 type Card = {
   id: string;
   tipo: TipoCard;
+  tipoAtendimento: TipoAtendimento;
   data: string;
   horario: string;
   cliente: string;
@@ -39,6 +43,9 @@ type Card = {
   motorista?: string | null;
   ajudante?: string | null;
   cancelado: boolean;
+  docOk: boolean;
+  entregaOk: boolean;
+  createdBy?: { name: string } | null;
   createdAt: string;
 };
 
@@ -96,6 +103,26 @@ export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
       body: JSON.stringify({ cancelado: !card.cancelado }),
     });
     carregar();
+  }
+
+  // Alterna sinaleiro (docOk ou entregaOk) com atualização otimista
+  async function toggleSinaleiro(card: Card, campo: "docOk" | "entregaOk") {
+    const novoValor = !card[campo];
+    // Atualização otimista do estado local
+    setCards((prev) =>
+      prev.map((c) => (c.id === card.id ? { ...c, [campo]: novoValor } : c))
+    );
+    const res = await fetch(`/api/cards/${card.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [campo]: novoValor }),
+    });
+    if (!res.ok) {
+      // Reverte em caso de erro
+      setCards((prev) =>
+        prev.map((c) => (c.id === card.id ? { ...c, [campo]: !novoValor } : c))
+      );
+    }
   }
 
   // Exclui permanentemente o card (para lançamentos duplicados)
@@ -161,6 +188,7 @@ export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
                     onCancelar={() => cancelarToggle(card)}
                     onExcluir={() => excluir(card)}
                     onSalvar={carregar}
+                    onToggleSinaleiro={(campo) => toggleSinaleiro(card, campo)}
                   />
                 ))}
               </div>
@@ -178,12 +206,14 @@ function CardBox({
   onCancelar,
   onExcluir,
   onSalvar,
+  onToggleSinaleiro,
 }: {
   card: Card;
   role: "ADMIN" | "TECNICO";
   onCancelar: () => void;
   onExcluir: () => void;
   onSalvar: () => void;
+  onToggleSinaleiro: (campo: "docOk" | "entregaOk") => void;
 }) {
   const [motorista, setMotorista] = useState(card.motorista ?? "");
   const [ajudante, setAjudante] = useState(card.ajudante ?? "");
@@ -211,11 +241,17 @@ function CardBox({
           CANCELADO
         </span>
       )}
-      <div className="mb-2 flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${TIPO_PONTO[card.tipo]}`} />
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <Tag className="h-3.5 w-3.5 text-slate-400" />
-        <span className="text-xs font-semibold uppercase text-slate-500">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${TIPO_BADGE_TV[card.tipo]}`}
+        >
           {labelTipo(card.tipo)}
+        </span>
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${ATENDIMENTO_BADGE[card.tipoAtendimento]}`}
+        >
+          {labelAtendimento(card.tipoAtendimento)}
         </span>
         <span className="ml-auto text-sm font-bold text-slate-900">
           {card.horario}
@@ -231,6 +267,44 @@ function CardBox({
         {card.tensao && <span>Tensão: {card.tensao}</span>}
         {card.periodo && <span>Período: {card.periodo}</span>}
         {card.franquia && <span>Franquia: {card.franquia}</span>}
+      </div>
+
+      {card.createdBy?.name && (
+        <p className="mt-1 text-[11px] text-slate-400">
+          Criado por: {card.createdBy.name}
+        </p>
+      )}
+
+      {/* Sinaleiros clicáveis: Documentos e Entrega/Retirada */}
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => onToggleSinaleiro("docOk")}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+            card.docOk
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+              : "border-yellow-300 bg-yellow-50 text-yellow-700"
+          }`}
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${card.docOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+          />
+          📄 Documentos
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggleSinaleiro("entregaOk")}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+            card.entregaOk
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+              : "border-yellow-300 bg-yellow-50 text-yellow-700"
+          }`}
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${card.entregaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+          />
+          🚚 Entrega/Retirada
+        </button>
       </div>
 
       {card.acessorios && (
