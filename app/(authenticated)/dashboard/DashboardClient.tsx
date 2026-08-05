@@ -42,12 +42,22 @@ type Card = {
   obs?: string | null;
   motorista?: string | null;
   ajudante?: string | null;
+  numeroContrato?: string | null;
+  numeroOrcamento?: string | null;
   cancelado: boolean;
-  docOk: boolean;
-  entregaOk: boolean;
+  comercialOk: boolean;
+  logisticaOk: boolean;
+  administrativoOk: boolean;
+  manutencaoOk: boolean;
   createdBy?: { name: string } | null;
   createdAt: string;
 };
+
+type SinaleiroCampo =
+  | "comercialOk"
+  | "logisticaOk"
+  | "administrativoOk"
+  | "manutencaoOk";
 
 // Retorna intervalo [segunda, domingo] da semana atual (offset em semanas)
 function intervaloSemana(offsetSemanas: number) {
@@ -105,8 +115,8 @@ export function DashboardClient({ role }: { role: "ADMIN" | "TECNICO" }) {
     carregar();
   }
 
-  // Alterna sinaleiro (docOk ou entregaOk) com atualização otimista
-  async function toggleSinaleiro(card: Card, campo: "docOk" | "entregaOk") {
+  // Alterna sinaleiro (comercial/logística/administrativo/manutenção) com atualização otimista
+  async function toggleSinaleiro(card: Card, campo: SinaleiroCampo) {
     const novoValor = !card[campo];
     // Atualização otimista do estado local
     setCards((prev) =>
@@ -213,7 +223,7 @@ function CardBox({
   onCancelar: () => void;
   onExcluir: () => void;
   onSalvar: () => void;
-  onToggleSinaleiro: (campo: "docOk" | "entregaOk") => void;
+  onToggleSinaleiro: (campo: SinaleiroCampo) => void;
 }) {
   const [motorista, setMotorista] = useState(card.motorista ?? "");
   const [ajudante, setAjudante] = useState(card.ajudante ?? "");
@@ -275,35 +285,43 @@ function CardBox({
         </p>
       )}
 
-      {/* Sinaleiros clicáveis: Documentos e Entrega/Retirada */}
-      <div className="mt-2 flex gap-2">
+      {(card.numeroContrato || card.numeroOrcamento) && (
+        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-slate-500">
+          {card.numeroContrato && <span>Nº Contrato: {card.numeroContrato}</span>}
+          {card.numeroOrcamento && <span>Nº Orçamento: {card.numeroOrcamento}</span>}
+        </div>
+      )}
+
+      {/* Sinaleiros clicáveis por setor */}
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <SinaleiroBtn
+          ativo={card.comercialOk}
+          onClick={() => onToggleSinaleiro("comercialOk")}
+          label="Comercial"
+        />
+        <SinaleiroBtn
+          ativo={card.logisticaOk}
+          onClick={() => onToggleSinaleiro("logisticaOk")}
+          label="Logística"
+        />
+        <SinaleiroBtn
+          ativo={card.administrativoOk}
+          onClick={() => onToggleSinaleiro("administrativoOk")}
+          label="Administrativo"
+        />
         <button
           type="button"
-          onClick={() => onToggleSinaleiro("docOk")}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
-            card.docOk
+          onClick={() => onToggleSinaleiro("manutencaoOk")}
+          className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+            card.manutencaoOk
               ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-              : "border-yellow-300 bg-yellow-50 text-yellow-700"
+              : "border-red-300 bg-red-50 text-red-700"
           }`}
         >
           <span
-            className={`h-2.5 w-2.5 rounded-full ${card.docOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+            className={`h-2.5 w-2.5 rounded-full ${card.manutencaoOk ? "bg-emerald-500" : "bg-red-500"}`}
           />
-          📄 Documentos
-        </button>
-        <button
-          type="button"
-          onClick={() => onToggleSinaleiro("entregaOk")}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
-            card.entregaOk
-              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-              : "border-yellow-300 bg-yellow-50 text-yellow-700"
-          }`}
-        >
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${card.entregaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
-          />
-          🚚 Entrega/Retirada
+          {card.manutencaoOk ? "Manutenção OK" : "Manutenção N/OK"}
         </button>
       </div>
 
@@ -392,5 +410,33 @@ function CardBox({
         </div>
       )}
     </div>
+  );
+}
+
+// Botão de sinaleiro (amarelo pendente → verde OK)
+function SinaleiroBtn({
+  ativo,
+  onClick,
+  label,
+}: {
+  ativo: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+        ativo
+          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+          : "border-yellow-300 bg-yellow-50 text-yellow-700"
+      }`}
+    >
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${ativo ? "bg-emerald-500" : "bg-yellow-400"}`}
+      />
+      {label}
+    </button>
   );
 }

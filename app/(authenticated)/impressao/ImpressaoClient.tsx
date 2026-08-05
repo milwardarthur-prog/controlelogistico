@@ -166,7 +166,7 @@ function RelatorioCompleto({
         Cronograma Logístico — {formatarData(inicio)} a {formatarData(fim)}
       </h2>
       {grupos.map(([data, lista]) => (
-        <section key={data} className="break-inside-avoid">
+        <section key={data} className="print-dia">
           <h3 className="mb-3 border-b-2 border-slate-900 pb-1 text-xl font-bold text-slate-900">
             {nomeDiaSemana(data)} — {formatarData(data)}
           </h3>
@@ -203,7 +203,7 @@ function CardCompleto({ card: c }: { card: Card }) {
   const totais = totaisBase.filter(([, v]) => preenchido(v));
 
   return (
-    <table className="w-full border-collapse border-2 border-slate-900 text-base">
+    <table className="print-card w-full border-collapse border-2 border-slate-900 text-base">
       <tbody>
         {c.cancelado && (
           <tr>
@@ -288,7 +288,7 @@ function RelatorioEquipamentos({
         Período: {formatarData(inicio)} a {formatarData(fim)}
       </p>
       {grupos.map(([data, lista]) => (
-        <section key={data} className="break-inside-avoid">
+        <section key={data} className="print-dia">
           <h3 className="mb-3 border-b-2 border-slate-900 pb-1 text-xl font-bold text-slate-900">
             {nomeDiaSemana(data)} — {formatarData(data)}
           </h3>

@@ -29,8 +29,10 @@ type Card = {
   acessorios?: string | null;
   obs?: string | null;
   cancelado: boolean;
-  docOk: boolean;
-  entregaOk: boolean;
+  comercialOk: boolean;
+  logisticaOk: boolean;
+  administrativoOk: boolean;
+  manutencaoOk: boolean;
   createdBy?: { name: string } | null;
   createdAt: string;
 };
@@ -215,19 +217,31 @@ function TvCard({ card }: { card: Card }) {
         {card.obs && <p className="line-clamp-1 italic text-gray-400">Obs: {card.obs}</p>}
       </div>
 
-      {/* Sinaleiros visuais (sem clique) */}
-      <div className="mt-auto flex items-center gap-3 pt-2 text-xs font-bold">
+      {/* Sinaleiros visuais por setor (sem clique) */}
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-xs font-bold">
         <span className="flex items-center gap-1">
           <span
-            className={`h-3 w-3 rounded-full ${card.docOk ? "bg-emerald-400" : "bg-yellow-400"}`}
+            className={`h-3 w-3 rounded-full ${card.comercialOk ? "bg-emerald-400" : "bg-yellow-400"}`}
           />
-          Documentos
+          Comercial
         </span>
         <span className="flex items-center gap-1">
           <span
-            className={`h-3 w-3 rounded-full ${card.entregaOk ? "bg-emerald-400" : "bg-yellow-400"}`}
+            className={`h-3 w-3 rounded-full ${card.logisticaOk ? "bg-emerald-400" : "bg-yellow-400"}`}
           />
-          Entrega/Retirada
+          Logística
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className={`h-3 w-3 rounded-full ${card.administrativoOk ? "bg-emerald-400" : "bg-yellow-400"}`}
+          />
+          Administrativo
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className={`h-3 w-3 rounded-full ${card.manutencaoOk ? "bg-emerald-400" : "bg-red-500"}`}
+          />
+          {card.manutencaoOk ? "Manutenção OK" : "Manutenção N/OK"}
         </span>
       </div>
 

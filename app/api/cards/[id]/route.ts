@@ -61,6 +61,8 @@ export async function PUT(
       obs: body.obs ?? null,
       motorista: body.motorista ?? null,
       ajudante: body.ajudante ?? null,
+      numeroContrato: body.numeroContrato ?? null,
+      numeroOrcamento: body.numeroOrcamento ?? null,
     };
   } else {
     // TÉCNICO só atualiza motorista e ajudante
@@ -80,7 +82,7 @@ export async function PUT(
 }
 
 // PATCH /api/cards/[id] — atualiza campos parciais.
-// docOk / entregaOk: qualquer usuário autenticado.
+// comercialOk / logisticaOk / administrativoOk / manutencaoOk: qualquer usuário autenticado.
 // cancelado: somente ADMIN.
 export async function PATCH(
   req: NextRequest,
@@ -99,8 +101,12 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   const data: Prisma.CardUpdateInput = {};
 
-  if (typeof body.docOk === "boolean") data.docOk = body.docOk;
-  if (typeof body.entregaOk === "boolean") data.entregaOk = body.entregaOk;
+  if (typeof body.comercialOk === "boolean") data.comercialOk = body.comercialOk;
+  if (typeof body.logisticaOk === "boolean") data.logisticaOk = body.logisticaOk;
+  if (typeof body.administrativoOk === "boolean")
+    data.administrativoOk = body.administrativoOk;
+  if (typeof body.manutencaoOk === "boolean")
+    data.manutencaoOk = body.manutencaoOk;
 
   // Alteração de cancelamento é restrita a ADMIN
   if (typeof body.cancelado === "boolean") {

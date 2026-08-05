@@ -64,9 +64,13 @@ model Card {
   obs             String?
   motorista       String?
   ajudante        String?
+  numeroContrato  String?
+  numeroOrcamento String?
   cancelado       Boolean         @default(false)
-  docOk           Boolean         @default(false)
-  entregaOk       Boolean         @default(false)
+  comercialOk     Boolean         @default(false)
+  logisticaOk     Boolean         @default(false)
+  administrativoOk Boolean        @default(false)
+  manutencaoOk    Boolean         @default(false)
   createdById     String?
   createdBy       User?           @relation("CardCreator", fields: [createdById], references: [id])
   createdAt       DateTime        @default(now())

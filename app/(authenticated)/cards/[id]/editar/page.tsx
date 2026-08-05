@@ -37,6 +37,8 @@ export default async function EditarCardPage({
     obs: card.obs ?? "",
     motorista: card.motorista ?? "",
     ajudante: card.ajudante ?? "",
+    numeroContrato: card.numeroContrato ?? "",
+    numeroOrcamento: card.numeroOrcamento ?? "",
   };
 
   return (

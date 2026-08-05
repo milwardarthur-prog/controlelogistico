@@ -29,6 +29,8 @@ export type CardData = {
   obs: string;
   motorista: string;
   ajudante: string;
+  numeroContrato: string;
+  numeroOrcamento: string;
 };
 
 const vazio: CardData = {
@@ -49,6 +51,8 @@ const vazio: CardData = {
   obs: "",
   motorista: "",
   ajudante: "",
+  numeroContrato: "",
+  numeroOrcamento: "",
 };
 
 // Formulário reutilizável para criar e editar cards
@@ -187,6 +191,17 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
         <div>
           <label className={label}>Ajudante</label>
           <input value={form.ajudante} onChange={(e) => set("ajudante", e.target.value)} className={campo} />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={label}>Número do Contrato</label>
+          <input value={form.numeroContrato} onChange={(e) => set("numeroContrato", e.target.value)} placeholder="CT-2026-001" className={campo} />
+        </div>
+        <div>
+          <label className={label}>Número do Orçamento</label>
+          <input value={form.numeroOrcamento} onChange={(e) => set("numeroOrcamento", e.target.value)} placeholder="ORC-2026-001" className={campo} />
         </div>
       </div>
 

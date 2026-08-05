@@ -60,8 +60,6 @@ export async function POST(req: NextRequest) {
       tipoAtendimento:
         (body.tipoAtendimento as TipoAtendimento) || TipoAtendimento.EVENTO,
       createdById: session.user.id,
-      docOk: false,
-      entregaOk: false,
       data: new Date(body.data + "T00:00:00.000Z"),
       horario: body.horario,
       cliente: body.cliente,
@@ -77,6 +75,8 @@ export async function POST(req: NextRequest) {
       obs: body.obs || null,
       motorista: body.motorista || null,
       ajudante: body.ajudante || null,
+      numeroContrato: body.numeroContrato || null,
+      numeroOrcamento: body.numeroOrcamento || null,
     },
     include: { createdBy: { select: { name: true } } },
   });

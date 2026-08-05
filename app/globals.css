@@ -52,8 +52,24 @@ body {
     size: A4 portrait;
     margin: 12mm;
   }
+  html,
   body {
     background: #ffffff !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  /* Neutraliza containers com altura fixa / rolagem que cortam o conteúdo
+     em várias páginas (layout usa h-screen + overflow-hidden/auto) */
+  .h-screen,
+  .min-h-screen,
+  [class*="h-screen"],
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"],
+  [class*="overflow-auto"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
   /* Oculta tudo que não faz parte da área de impressão */
   aside,
@@ -62,6 +78,8 @@ body {
   }
   main {
     overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
     padding: 0 !important;
   }
   .print-area {
@@ -80,8 +98,14 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .break-inside-avoid {
+  .break-inside-avoid,
+  .print-card {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+  /* Evita quebrar um card no meio; o grupo do dia pode quebrar entre páginas */
+  .print-dia {
+    break-inside: auto;
+    page-break-inside: auto;
   }
 }

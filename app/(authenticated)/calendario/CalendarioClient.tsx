@@ -29,9 +29,13 @@ type Card = {
   ajudante?: string | null;
   acessorios?: string | null;
   obs?: string | null;
+  numeroContrato?: string | null;
+  numeroOrcamento?: string | null;
   cancelado: boolean;
-  docOk: boolean;
-  entregaOk: boolean;
+  comercialOk: boolean;
+  logisticaOk: boolean;
+  administrativoOk: boolean;
+  manutencaoOk: boolean;
   createdBy?: { name: string } | null;
 };
 
@@ -221,12 +225,20 @@ export function CalendarioClient() {
                   <p className="truncate text-[10px] text-slate-400">{c.equipamento}</p>
                   <div className="mt-0.5 flex items-center gap-1">
                     <span
-                      className={`h-2 w-2 rounded-full ${c.docOk ? "bg-emerald-500" : "bg-yellow-400"}`}
-                      title="Documentos"
+                      className={`h-2 w-2 rounded-full ${c.comercialOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                      title="Comercial"
                     />
                     <span
-                      className={`h-2 w-2 rounded-full ${c.entregaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
-                      title="Entrega/Retirada"
+                      className={`h-2 w-2 rounded-full ${c.logisticaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                      title="Logística"
+                    />
+                    <span
+                      className={`h-2 w-2 rounded-full ${c.administrativoOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                      title="Administrativo"
+                    />
+                    <span
+                      className={`h-2 w-2 rounded-full ${c.manutencaoOk ? "bg-emerald-500" : "bg-red-500"}`}
+                      title="Manutenção"
                     />
                   </div>
                 </button>
@@ -296,22 +308,36 @@ export function CalendarioClient() {
               <Linha rotulo="Motorista" valor={cardSelecionado.motorista} />
               <Linha rotulo="Ajudante" valor={cardSelecionado.ajudante} />
               <Linha rotulo="Local" valor={cardSelecionado.local} />
+              <Linha rotulo="Nº Contrato" valor={cardSelecionado.numeroContrato} />
+              <Linha rotulo="Nº Orçamento" valor={cardSelecionado.numeroOrcamento} />
               <Linha rotulo="Acessórios" valor={cardSelecionado.acessorios} />
               <Linha rotulo="OBS" valor={cardSelecionado.obs} />
             </dl>
 
-            <div className="mt-4 flex gap-4 border-t border-slate-100 pt-3 text-sm font-semibold">
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-sm font-semibold">
               <span className="flex items-center gap-1">
                 <span
-                  className={`h-3 w-3 rounded-full ${cardSelecionado.docOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                  className={`h-3 w-3 rounded-full ${cardSelecionado.comercialOk ? "bg-emerald-500" : "bg-yellow-400"}`}
                 />
-                Documentos
+                Comercial
               </span>
               <span className="flex items-center gap-1">
                 <span
-                  className={`h-3 w-3 rounded-full ${cardSelecionado.entregaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                  className={`h-3 w-3 rounded-full ${cardSelecionado.logisticaOk ? "bg-emerald-500" : "bg-yellow-400"}`}
                 />
-                Entrega/Retirada
+                Logística
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className={`h-3 w-3 rounded-full ${cardSelecionado.administrativoOk ? "bg-emerald-500" : "bg-yellow-400"}`}
+                />
+                Administrativo
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className={`h-3 w-3 rounded-full ${cardSelecionado.manutencaoOk ? "bg-emerald-500" : "bg-red-500"}`}
+                />
+                {cardSelecionado.manutencaoOk ? "Manutenção OK" : "Manutenção N/OK"}
               </span>
             </div>
 
