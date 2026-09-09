@@ -124,14 +124,14 @@ function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
       </div>
 
       {/* Esteira horizontal contínua */}
-      <div className="relative flex flex-1 items-stretch overflow-hidden">
+      <div className="relative flex flex-1 items-start overflow-hidden">
         {cards.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-2xl font-bold text-gray-600">
             Sem agendamentos
           </div>
         ) : (
           <div
-            className="marquee-track items-stretch gap-3 p-2"
+            className="marquee-track items-start gap-3 p-2"
             style={{ animationDuration: `${duracao}s` }}
           >
             {track.map((c, i) => (
@@ -178,7 +178,7 @@ function TvCard({ card }: { card: Card }) {
 
   return (
     <div
-      className={`relative flex h-full w-[460px] max-w-[560px] flex-shrink-0 flex-col rounded-lg border-4 bg-gray-900 p-4 ${
+      className={`relative flex w-[460px] max-w-[560px] flex-shrink-0 flex-col rounded-lg border-4 bg-gray-900 p-4 ${
         piscando ? "card-novo" : "border-gray-700"
       }`}
     >
@@ -223,7 +223,7 @@ function TvCard({ card }: { card: Card }) {
 
       {/* Bloco de conteúdo: fonte adaptativa, sem line-clamp/truncate.
           Todos os campos quebram linha (whitespace-normal + break-words). */}
-      <div className={`min-h-0 flex-1 space-y-1 ${fonteConteudo}`}>
+      <div className={`space-y-1 ${fonteConteudo}`}>
         <p className="whitespace-normal break-words">
           <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
         </p>
