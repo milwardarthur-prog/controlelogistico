@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import {
   formatarData,
@@ -44,6 +51,7 @@ type Card = {
 const INTERVALO_POLL = 60000; // 60s
 const SEGUNDOS_POR_CARD = 14; // velocidade lenta e confortável para leitura (~14s por card)
 const MIN_CARDS_LOOP = 4; // mínimo de cards no track para um loop suave
+const ESCALA_MINIMA = 0.6; // abaixo disso, aciona o plano B (ocultar campos)
 
 function isoOffset(n: number) {
   const d = new Date();
@@ -94,6 +102,24 @@ export function TvClient() {
 }
 
 function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
+  // Mede a altura real disponível da faixa via ResizeObserver, para que os
+  // cards tenham uma altura fixa em px e possam se auto-ajustar por medição.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [alturaLinha, setAlturaLinha] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height ?? 0;
+      setAlturaLinha(h);
+    });
+    obs.observe(el);
+    // valor inicial imediato
+    setAlturaLinha(el.clientHeight);
+    return () => obs.disconnect();
+  }, []);
+
   // Constrói a lista base garantindo um mínimo de cards para o loop ficar suave.
   // Se houver poucos cards, repete-os até atingir MIN_CARDS_LOOP.
   const base = useMemo(() => {
@@ -111,6 +137,9 @@ function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
   // Duração proporcional ao número de cards da base (uma cópia).
   const duracao = Math.max(base.length * SEGUNDOS_POR_CARD, SEGUNDOS_POR_CARD);
 
+  // Altura do card = altura da faixa menos o padding vertical do track (p-2 = 8px * 2).
+  const alturaCard = Math.max(alturaLinha - 16, 0);
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Label vertical do dia */}
@@ -124,45 +153,27 @@ function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
       </div>
 
       {/* Esteira horizontal contínua */}
-      <div className="relative flex flex-1 items-start overflow-hidden">
+      <div
+        ref={containerRef}
+        className="relative flex flex-1 items-stretch overflow-hidden"
+      >
         {cards.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-2xl font-bold text-gray-600">
             Sem agendamentos
           </div>
         ) : (
           <div
-            className="marquee-track items-start gap-3 p-2"
+            className="marquee-track items-stretch gap-3 p-2"
             style={{ animationDuration: `${duracao}s` }}
           >
             {track.map((c, i) => (
-              <TvCard key={`${c.id}-${i}`} card={c} />
+              <TvCard key={`${c.id}-${i}`} card={c} alturaDisponivel={alturaCard} />
             ))}
           </div>
         )}
       </div>
     </div>
   );
-}
-
-// Calcula a classe de fonte com base no volume total de conteúdo do card.
-// Cards com mais texto recebem fonte progressivamente menor (tamanho físico fixo).
-function classeFonteConteudo(card: Card): string {
-  const total = [
-    card.equipamento,
-    card.local,
-    card.acessorios,
-    card.obs,
-    card.veiculo,
-    card.motorista,
-    card.ajudante,
-  ]
-    .filter(Boolean)
-    .join("").length;
-
-  if (total > 320) return "text-[11px] leading-tight";
-  if (total > 200) return "text-xs leading-snug";
-  if (total > 110) return "text-sm leading-snug";
-  return "text-base leading-snug";
 }
 
 // Ajusta o tamanho do nome do cliente conforme o comprimento
@@ -172,15 +183,100 @@ function classeFonteCliente(cliente: string): string {
   return "text-2xl";
 }
 
-function TvCard({ card }: { card: Card }) {
+function TvCard({
+  card,
+  alturaDisponivel,
+}: {
+  card: Card;
+  alturaDisponivel: number;
+}) {
   const piscando = !card.cancelado && isCardPiscando(card.createdAt, card.data);
-  const fonteConteudo = classeFonteConteudo(card);
+
+  // refs para medição real do DOM
+  const cabecalhoRef = useRef<HTMLDivElement>(null);
+  const clienteRef = useRef<HTMLDivElement>(null);
+  const sinaleirosRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const [escala, setEscala] = useState(1);
+  const [mostrarObs, setMostrarObs] = useState(true);
+  const [mostrarAcessorios, setMostrarAcessorios] = useState(true);
+
+  // Reseta o plano B sempre que o card ou a altura mudam, para reavaliar do zero.
+  useLayoutEffect(() => {
+    setMostrarObs(true);
+    setMostrarAcessorios(true);
+    setEscala(1);
+  }, [
+    card.id,
+    card.equipamento,
+    card.local,
+    card.veiculo,
+    card.motorista,
+    card.ajudante,
+    card.acessorios,
+    card.obs,
+    alturaDisponivel,
+  ]);
+
+  // Mede o conteúdo real renderizado e calcula a escala necessária.
+  useLayoutEffect(() => {
+    if (!contentRef.current || !alturaDisponivel) return;
+
+    // Padding vertical do card (p-4 = 16px topo + 16px base)
+    const PADDING = 32;
+    const hCabecalho = cabecalhoRef.current?.offsetHeight ?? 0;
+    const hCliente = clienteRef.current?.offsetHeight ?? 0;
+    const hSinaleiros = sinaleirosRef.current?.offsetHeight ?? 0;
+
+    const espacoFixo = PADDING + hCabecalho + hCliente + hSinaleiros;
+    const espacoConteudo = alturaDisponivel - espacoFixo;
+    if (espacoConteudo <= 0) return;
+
+    const scrollH = contentRef.current.scrollHeight;
+
+    if (scrollH <= espacoConteudo) {
+      if (escala !== 1) setEscala(1);
+      return;
+    }
+
+    const fator = espacoConteudo / scrollH;
+
+    if (fator >= ESCALA_MINIMA) {
+      setEscala(fator);
+      return;
+    }
+
+    // Plano B: reduzir conteúdo antes de encolher demais.
+    // 1º) ocultar observação; 2º) ocultar acessórios.
+    if (mostrarObs && card.obs) {
+      setMostrarObs(false);
+      return; // reavalia no próximo layout com menos conteúdo
+    }
+    if (mostrarAcessorios && card.acessorios) {
+      setMostrarAcessorios(false);
+      return;
+    }
+
+    // Sem mais campos opcionais para ocultar: aplica a escala mínima possível.
+    setEscala(Math.max(fator, ESCALA_MINIMA));
+  }, [
+    card,
+    alturaDisponivel,
+    mostrarObs,
+    mostrarAcessorios,
+    escala,
+  ]);
+
+  const alturaEstilo =
+    alturaDisponivel > 0 ? { height: `${alturaDisponivel}px` } : undefined;
 
   return (
     <div
-      className={`relative flex w-[460px] max-w-[560px] flex-shrink-0 flex-col rounded-lg border-4 bg-gray-900 p-4 ${
+      className={`relative flex w-[460px] max-w-[560px] flex-shrink-0 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-4 ${
         piscando ? "card-novo" : "border-gray-700"
       }`}
+      style={alturaEstilo}
     >
       {/* Overlay de CANCELADO com carimbo */}
       {card.cancelado && (
@@ -198,7 +294,8 @@ function TvCard({ card }: { card: Card }) {
         </div>
       )}
 
-      <div className="mb-1 flex items-center justify-between gap-1">
+      {/* Cabeçalho fixo: badges + horário */}
+      <div ref={cabecalhoRef} className="flex items-center justify-between gap-1">
         <div className="flex flex-wrap items-center gap-1">
           <span
             className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
@@ -214,51 +311,68 @@ function TvCard({ card }: { card: Card }) {
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>
 
-      <p
-        className={`break-words font-black leading-tight ${classeFonteCliente(card.cliente)}`}
-      >
-        {card.cliente}
-      </p>
-      <p className="mb-2 text-sm text-gray-300">{formatarData(card.data)}</p>
-
-      {/* Bloco de conteúdo: fonte adaptativa, sem line-clamp/truncate.
-          Todos os campos quebram linha (whitespace-normal + break-words). */}
-      <div className={`space-y-1 ${fonteConteudo}`}>
-        <p className="whitespace-normal break-words">
-          <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
+      {/* Cliente + data (fixo) */}
+      <div ref={clienteRef} className="mb-1 mt-1">
+        <p
+          className={`break-words font-black leading-tight ${classeFonteCliente(card.cliente)}`}
+        >
+          {card.cliente}
         </p>
-        <p className="whitespace-normal break-words">
-          <span className="font-bold text-gray-400">Local:</span> {card.local}
-        </p>
-        {card.veiculo && (
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
-          </p>
-        )}
-        {card.motorista && (
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
-          </p>
-        )}
-        {card.ajudante && (
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
-          </p>
-        )}
-        {card.acessorios && (
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
-          </p>
-        )}
-        {card.obs && (
-          <p className="whitespace-normal break-words italic text-gray-400">
-            Obs: {card.obs}
-          </p>
-        )}
+        <p className="text-sm text-gray-300">{formatarData(card.data)}</p>
       </div>
 
-      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-700 pt-2 text-xs font-bold">
+      {/* Bloco de conteúdo variável: auto-fit por escala medida no DOM.
+          O container externo ocupa o espaço restante (flex-1) e recorta;
+          o interno recebe transform:scale com width compensado. */}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div
+          ref={contentRef}
+          className="space-y-1 text-base leading-snug"
+          style={{
+            transform: `scale(${escala})`,
+            transformOrigin: "top left",
+            width: `calc(100% / ${escala})`,
+          }}
+        >
+          <p className="whitespace-normal break-words">
+            <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
+          </p>
+          <p className="whitespace-normal break-words">
+            <span className="font-bold text-gray-400">Local:</span> {card.local}
+          </p>
+          {card.veiculo && (
+            <p className="whitespace-normal break-words">
+              <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
+            </p>
+          )}
+          {card.motorista && (
+            <p className="whitespace-normal break-words">
+              <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
+            </p>
+          )}
+          {card.ajudante && (
+            <p className="whitespace-normal break-words">
+              <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
+            </p>
+          )}
+          {card.acessorios && mostrarAcessorios && (
+            <p className="whitespace-normal break-words">
+              <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
+            </p>
+          )}
+          {card.obs && mostrarObs && (
+            <p className="whitespace-normal break-words italic text-gray-400">
+              Obs: {card.obs}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — fixo */}
+      <div
+        ref={sinaleirosRef}
+        className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-700 pt-2 text-xs font-bold"
+      >
         {SINALEIRO_CAMPOS.map(({ campo, label }) => (
           <span key={campo} className="flex items-center gap-1">
             <span className={`h-3 w-3 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
@@ -266,12 +380,6 @@ function TvCard({ card }: { card: Card }) {
           </span>
         ))}
       </div>
-
-      {card.createdBy?.name && (
-        <p className="mt-0.5 text-[10px] text-gray-500">
-          Criado por: {card.createdBy.name}
-        </p>
-      )}
     </div>
   );
 }
