@@ -23,6 +23,7 @@
     "prisma": "^6.19.3",
     "react": "^18",
     "react-dom": "^18",
+    "resize-observer-polyfill": "^1.5.1",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
@@ -39,5 +40,13 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
-  }
+  },
+  "browserslist": [
+    "> 0.5%",
+    "last 4 Chrome versions",
+    "last 4 Firefox versions",
+    "last 2 Safari versions",
+    "not dead",
+    "Chrome >= 60"
+  ]
 }

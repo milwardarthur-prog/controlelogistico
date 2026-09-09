@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import ResizeObserver from "resize-observer-polyfill";
 import Image from "next/image";
 import {
   formatarData,
@@ -110,14 +111,31 @@ function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const obs = new ResizeObserver((entries) => {
-      const h = entries[0]?.contentRect.height ?? 0;
-      setAlturaLinha(h);
-    });
-    obs.observe(el);
-    // valor inicial imediato
-    setAlturaLinha(el.clientHeight);
-    return () => obs.disconnect();
+
+    // Medição robusta via getBoundingClientRect (funciona em Chromium antigo)
+    const updateAltura = () => {
+      if (containerRef.current) {
+        setAlturaLinha(containerRef.current.getBoundingClientRect().height);
+      }
+    };
+
+    // Medição inicial imediata
+    updateAltura();
+
+    // Preferimos ResizeObserver (com polyfill importado); se por algum motivo
+    // falhar em Smart TVs antigas, caímos para o listener de resize da janela.
+    let obs: ResizeObserver | null = null;
+    try {
+      obs = new ResizeObserver(updateAltura);
+      obs.observe(el);
+    } catch {
+      window.addEventListener("resize", updateAltura);
+    }
+
+    return () => {
+      if (obs) obs.disconnect();
+      else window.removeEventListener("resize", updateAltura);
+    };
   }, []);
 
   // Constrói a lista base garantindo um mínimo de cards para o loop ficar suave.
@@ -183,6 +201,55 @@ function classeFonteCliente(cliente: string): string {
   return "text-2xl";
 }
 
+// Campos de conteúdo variável do card. Renderizado tanto no elemento visível
+// (que recebe a escala) quanto no elemento invisível de medição (measureRef).
+// Manter os dois idênticos é essencial para que a medição seja fiel.
+function ConteudoCampos({
+  card,
+  mostrarObs,
+  mostrarAcessorios,
+}: {
+  card: Card;
+  mostrarObs: boolean;
+  mostrarAcessorios: boolean;
+}) {
+  return (
+    <>
+      <p className="whitespace-normal break-words">
+        <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
+      </p>
+      <p className="whitespace-normal break-words">
+        <span className="font-bold text-gray-400">Local:</span> {card.local}
+      </p>
+      {card.veiculo && (
+        <p className="whitespace-normal break-words">
+          <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
+        </p>
+      )}
+      {card.motorista && (
+        <p className="whitespace-normal break-words">
+          <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
+        </p>
+      )}
+      {card.ajudante && (
+        <p className="whitespace-normal break-words">
+          <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
+        </p>
+      )}
+      {card.acessorios && mostrarAcessorios && (
+        <p className="whitespace-normal break-words">
+          <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
+        </p>
+      )}
+      {card.obs && mostrarObs && (
+        <p className="whitespace-normal break-words italic text-gray-400">
+          Obs: {card.obs}
+        </p>
+      )}
+    </>
+  );
+}
+
 function TvCard({
   card,
   alturaDisponivel,
@@ -196,17 +263,20 @@ function TvCard({
   const cabecalhoRef = useRef<HTMLDivElement>(null);
   const clienteRef = useRef<HTMLDivElement>(null);
   const sinaleirosRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  // Elemento INVISÍVEL de medição: largura real do card, SEM transform.
+  // A escala é lida somente deste elemento, nunca do elemento visível — assim
+  // a compensação de largura (width: calc) não realimenta o scrollHeight medido.
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const [escala, setEscala] = useState(1);
   const [mostrarObs, setMostrarObs] = useState(true);
   const [mostrarAcessorios, setMostrarAcessorios] = useState(true);
 
-  // Reseta o plano B sempre que o card ou a altura mudam, para reavaliar do zero.
+  // Reseta os campos visíveis sempre que os dados do card mudam (novo card no
+  // ciclo do marquee) ou quando a altura disponível muda, para reavaliar do zero.
   useLayoutEffect(() => {
     setMostrarObs(true);
     setMostrarAcessorios(true);
-    setEscala(1);
   }, [
     card.id,
     card.equipamento,
@@ -219,9 +289,11 @@ function TvCard({
     alturaDisponivel,
   ]);
 
-  // Mede o conteúdo real renderizado e calcula a escala necessária.
+  // Mede o conteúdo no elemento invisível (measureRef) e calcula a escala.
+  // Depende de mostrarObs/mostrarAcessorios (para o plano B) mas NÃO de `escala`
+  // — isso quebra o ciclo de medição instável.
   useLayoutEffect(() => {
-    if (!contentRef.current || !alturaDisponivel) return;
+    if (!measureRef.current || !alturaDisponivel) return;
 
     // Padding vertical do card (p-4 = 16px topo + 16px base)
     const PADDING = 32;
@@ -233,10 +305,11 @@ function TvCard({
     const espacoConteudo = alturaDisponivel - espacoFixo;
     if (espacoConteudo <= 0) return;
 
-    const scrollH = contentRef.current.scrollHeight;
+    // scrollHeight do CLONE invisível (largura real, sem escala aplicada)
+    const scrollH = measureRef.current.scrollHeight;
 
     if (scrollH <= espacoConteudo) {
-      if (escala !== 1) setEscala(1);
+      setEscala(1);
       return;
     }
 
@@ -249,24 +322,19 @@ function TvCard({
 
     // Plano B: reduzir conteúdo antes de encolher demais.
     // 1º) ocultar observação; 2º) ocultar acessórios.
+    // Cada ocultação dispara nova execução (dependência mudou) → remede o clone.
     if (mostrarObs && card.obs) {
       setMostrarObs(false);
-      return; // reavalia no próximo layout com menos conteúdo
+      return;
     }
     if (mostrarAcessorios && card.acessorios) {
       setMostrarAcessorios(false);
       return;
     }
 
-    // Sem mais campos opcionais para ocultar: aplica a escala mínima possível.
-    setEscala(Math.max(fator, ESCALA_MINIMA));
-  }, [
-    card,
-    alturaDisponivel,
-    mostrarObs,
-    mostrarAcessorios,
-    escala,
-  ]);
+    // Sem mais campos opcionais para ocultar: aplica o piso de escala (0.60).
+    setEscala(ESCALA_MINIMA);
+  }, [card, alturaDisponivel, mostrarObs, mostrarAcessorios]);
 
   const alturaEstilo =
     alturaDisponivel > 0 ? { height: `${alturaDisponivel}px` } : undefined;
@@ -321,12 +389,25 @@ function TvCard({
         <p className="text-sm text-gray-300">{formatarData(card.data)}</p>
       </div>
 
-      {/* Bloco de conteúdo variável: auto-fit por escala medida no DOM.
-          O container externo ocupa o espaço restante (flex-1) e recorta;
-          o interno recebe transform:scale com width compensado. */}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      {/* Bloco de conteúdo variável: auto-fit por escala medida no clone.
+          O container externo ocupa o espaço restante (flex-1) e recorta. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* Clone invisível de medição: largura real (w-full), SEM transform.
+            É a única fonte do scrollHeight usado para calcular a escala. */}
         <div
-          ref={contentRef}
+          ref={measureRef}
+          aria-hidden="true"
+          className="pointer-events-none invisible absolute left-0 top-0 w-full space-y-1 text-base leading-snug"
+        >
+          <ConteudoCampos
+            card={card}
+            mostrarObs={mostrarObs}
+            mostrarAcessorios={mostrarAcessorios}
+          />
+        </div>
+
+        {/* Conteúdo visível: recebe apenas a escala já calculada. */}
+        <div
           className="space-y-1 text-base leading-snug"
           style={{
             transform: `scale(${escala})`,
@@ -334,37 +415,11 @@ function TvCard({
             width: `calc(100% / ${escala})`,
           }}
         >
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
-          </p>
-          <p className="whitespace-normal break-words">
-            <span className="font-bold text-gray-400">Local:</span> {card.local}
-          </p>
-          {card.veiculo && (
-            <p className="whitespace-normal break-words">
-              <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
-            </p>
-          )}
-          {card.motorista && (
-            <p className="whitespace-normal break-words">
-              <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
-            </p>
-          )}
-          {card.ajudante && (
-            <p className="whitespace-normal break-words">
-              <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
-            </p>
-          )}
-          {card.acessorios && mostrarAcessorios && (
-            <p className="whitespace-normal break-words">
-              <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
-            </p>
-          )}
-          {card.obs && mostrarObs && (
-            <p className="whitespace-normal break-words italic text-gray-400">
-              Obs: {card.obs}
-            </p>
-          )}
+          <ConteudoCampos
+            card={card}
+            mostrarObs={mostrarObs}
+            mostrarAcessorios={mostrarAcessorios}
+          />
         </div>
       </div>
 
