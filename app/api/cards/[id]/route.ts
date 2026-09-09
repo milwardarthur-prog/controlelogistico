@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { TipoCard, TipoAtendimento, Prisma } from "@prisma/client";
+import { TipoCard, TipoAtendimento, SinaleiroStatus, Prisma } from "@prisma/client";
 
 const incluirCriador = { createdBy: { select: { name: true } } };
+
+// Valores válidos do enum de sinaleiro
+const SINALEIRO_VALIDOS: SinaleiroStatus[] = [
+  "NAO_VISUALIZADO",
+  "OK",
+  "NAO_OK",
+];
+
+function isSinaleiro(v: unknown): v is SinaleiroStatus {
+  return typeof v === "string" && SINALEIRO_VALIDOS.includes(v as SinaleiroStatus);
+}
 
 // GET /api/cards/[id] — retorna um card específico
 export async function GET(
@@ -21,8 +32,8 @@ export async function GET(
   return NextResponse.json(card);
 }
 
-// PUT /api/cards/[id] — edita um card.
-// ADMIN pode editar tudo; TÉCNICO só pode editar motorista e ajudante.
+// PUT /api/cards/[id] — edição completa do card.
+// Disponível para qualquer usuário autenticado (ADMIN e TÉCNICO).
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -38,39 +49,28 @@ export async function PUT(
     return NextResponse.json({ error: "Card não encontrado" }, { status: 404 });
   }
 
-  let data: Prisma.CardUpdateInput;
-  if (session.user.role === "ADMIN") {
-    data = {
-      tipo: (body.tipo as TipoCard) || existente.tipo,
-      tipoAtendimento:
-        (body.tipoAtendimento as TipoAtendimento) || existente.tipoAtendimento,
-      data: body.data
-        ? new Date(body.data + "T00:00:00.000Z")
-        : existente.data,
-      horario: body.horario ?? existente.horario,
-      cliente: body.cliente ?? existente.cliente,
-      equipamento: body.equipamento ?? existente.equipamento,
-      tensao: body.tensao ?? null,
-      veiculo: body.veiculo ?? null,
-      periodo: body.periodo ?? null,
-      franquia: body.franquia ?? null,
-      local: body.local ?? existente.local,
-      combustivel: body.combustivel ?? null,
-      instalacao: body.instalacao ?? null,
-      acessorios: body.acessorios ?? null,
-      obs: body.obs ?? null,
-      motorista: body.motorista ?? null,
-      ajudante: body.ajudante ?? null,
-      numeroContrato: body.numeroContrato ?? null,
-      numeroOrcamento: body.numeroOrcamento ?? null,
-    };
-  } else {
-    // TÉCNICO só atualiza motorista e ajudante
-    data = {
-      motorista: body.motorista ?? existente.motorista,
-      ajudante: body.ajudante ?? existente.ajudante,
-    };
-  }
+  const data: Prisma.CardUpdateInput = {
+    tipo: (body.tipo as TipoCard) || existente.tipo,
+    tipoAtendimento:
+      (body.tipoAtendimento as TipoAtendimento) || existente.tipoAtendimento,
+    data: body.data ? new Date(body.data + "T00:00:00.000Z") : existente.data,
+    horario: body.horario ?? existente.horario,
+    cliente: body.cliente ?? existente.cliente,
+    equipamento: body.equipamento ?? existente.equipamento,
+    tensao: body.tensao || null,
+    veiculo: body.veiculo || null,
+    periodo: body.periodo || null,
+    franquia: body.franquia || null,
+    local: body.local ?? existente.local,
+    combustivel: body.combustivel || null,
+    instalacao: body.instalacao || null,
+    acessorios: body.acessorios || null,
+    obs: body.obs || null,
+    motorista: body.motorista || null,
+    ajudante: body.ajudante || null,
+    numeroContrato: body.numeroContrato || null,
+    numeroOrcamento: body.numeroOrcamento || null,
+  };
 
   const card = await prisma.card.update({
     where: { id: params.id },
@@ -81,9 +81,9 @@ export async function PUT(
   return NextResponse.json(card);
 }
 
-// PATCH /api/cards/[id] — atualiza campos parciais.
-// comercialOk / logisticaOk / administrativoOk / manutencaoOk: qualquer usuário autenticado.
-// cancelado: somente ADMIN.
+// PATCH /api/cards/[id] — atualização parcial.
+// Aceita: sinaleiros (SinaleiroStatus), data (drag-and-drop), cancelado,
+// motorista e ajudante. Disponível para qualquer usuário autenticado.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -101,23 +101,24 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   const data: Prisma.CardUpdateInput = {};
 
-  if (typeof body.comercialOk === "boolean") data.comercialOk = body.comercialOk;
-  if (typeof body.logisticaOk === "boolean") data.logisticaOk = body.logisticaOk;
-  if (typeof body.administrativoOk === "boolean")
+  // Sinaleiros de 3 estados
+  if (isSinaleiro(body.comercialOk)) data.comercialOk = body.comercialOk;
+  if (isSinaleiro(body.logisticaOk)) data.logisticaOk = body.logisticaOk;
+  if (isSinaleiro(body.administrativoOk))
     data.administrativoOk = body.administrativoOk;
-  if (typeof body.manutencaoOk === "boolean")
-    data.manutencaoOk = body.manutencaoOk;
+  if (isSinaleiro(body.manutencaoOk)) data.manutencaoOk = body.manutencaoOk;
 
-  // Alteração de cancelamento é restrita a ADMIN
-  if (typeof body.cancelado === "boolean") {
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Apenas administradores podem cancelar cards" },
-        { status: 403 }
-      );
-    }
-    data.cancelado = body.cancelado;
+  // Cancelamento / reativação (sem restrição de papel)
+  if (typeof body.cancelado === "boolean") data.cancelado = body.cancelado;
+
+  // Alteração de data (usada no drag-and-drop entre dias)
+  if (typeof body.data === "string" && body.data.trim() !== "") {
+    data.data = new Date(body.data + "T00:00:00.000Z");
   }
+
+  // Edição rápida de equipe
+  if (typeof body.motorista === "string") data.motorista = body.motorista || null;
+  if (typeof body.ajudante === "string") data.ajudante = body.ajudante || null;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
@@ -135,14 +136,15 @@ export async function PATCH(
   return NextResponse.json(card);
 }
 
-// DELETE /api/cards/[id] — remove um card (somente ADMIN)
+// DELETE /api/cards/[id] — remove um card.
+// Disponível para qualquer usuário autenticado (ADMIN e TÉCNICO).
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
   await prisma.card.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });

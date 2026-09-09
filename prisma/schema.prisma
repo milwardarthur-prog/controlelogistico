@@ -34,6 +34,12 @@ enum TipoAtendimento {
   DESLIGAMENTO
 }
 
+enum SinaleiroStatus {
+  NAO_VISUALIZADO
+  OK
+  NAO_OK
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -67,10 +73,10 @@ model Card {
   numeroContrato  String?
   numeroOrcamento String?
   cancelado       Boolean         @default(false)
-  comercialOk     Boolean         @default(false)
-  logisticaOk     Boolean         @default(false)
-  administrativoOk Boolean        @default(false)
-  manutencaoOk    Boolean         @default(false)
+  comercialOk      SinaleiroStatus @default(NAO_VISUALIZADO)
+  logisticaOk      SinaleiroStatus @default(NAO_VISUALIZADO)
+  administrativoOk SinaleiroStatus @default(NAO_VISUALIZADO)
+  manutencaoOk     SinaleiroStatus @default(NAO_VISUALIZADO)
   createdById     String?
   createdBy       User?           @relation("CardCreator", fields: [createdById], references: [id])
   createdAt       DateTime        @default(now())

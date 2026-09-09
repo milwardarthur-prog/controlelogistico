@@ -124,3 +124,50 @@ export function isCardPiscando(createdAt: Date | string, data: Date | string): b
   const dataIso = chaveData(data);
   return criadoIso === hojeIso && dataIso === hojeIso;
 }
+
+// --- Sinaleiros de 3 estados (Comercial, Logística, Administrativo, Manutenção) ---
+
+export type SinaleiroStatus = "NAO_VISUALIZADO" | "OK" | "NAO_OK";
+
+export const SINALEIRO_LABELS: Record<SinaleiroStatus, string> = {
+  NAO_VISUALIZADO: "Não visualizado",
+  OK: "OK",
+  NAO_OK: "Não OK",
+};
+
+// Classe de fundo (bolinha/badge) para cada estado
+export const SINALEIRO_COR: Record<SinaleiroStatus, string> = {
+  NAO_VISUALIZADO: "bg-yellow-400",
+  OK: "bg-emerald-500",
+  NAO_OK: "bg-red-500",
+};
+
+// Emoji para exibição rápida em textos
+export const SINALEIRO_EMOJI: Record<SinaleiroStatus, string> = {
+  NAO_VISUALIZADO: "🟡",
+  OK: "🟢",
+  NAO_OK: "🔴",
+};
+
+// Campos de sinaleiro existentes no Card, com seus rótulos amigáveis
+export const SINALEIRO_CAMPOS = [
+  { campo: "comercialOk", label: "Comercial" },
+  { campo: "logisticaOk", label: "Logística" },
+  { campo: "administrativoOk", label: "Administrativo" },
+  { campo: "manutencaoOk", label: "Manutenção" },
+] as const;
+
+export type SinaleiroCampo = (typeof SINALEIRO_CAMPOS)[number]["campo"];
+
+// Retorna o próximo estado no ciclo NAO_VISUALIZADO -> OK -> NAO_OK -> NAO_VISUALIZADO
+export function proximoSinaleiro(atual: SinaleiroStatus): SinaleiroStatus {
+  switch (atual) {
+    case "NAO_VISUALIZADO":
+      return "OK";
+    case "OK":
+      return "NAO_OK";
+    case "NAO_OK":
+    default:
+      return "NAO_VISUALIZADO";
+  }
+}

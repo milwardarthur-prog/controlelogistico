@@ -7,7 +7,7 @@ import { ImpressaoClient } from "./ImpressaoClient";
 export default async function ImpressaoPage() {
   const session = await getServerSession(authOptions);
   if (session?.user.role !== "ADMIN") {
-    redirect("/dashboard");
+    redirect("/calendario");
   }
   return <ImpressaoClient />;
 }

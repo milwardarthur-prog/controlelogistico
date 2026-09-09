@@ -11,8 +11,11 @@ import {
   labelAtendimento,
   TIPO_BADGE_TV,
   ATENDIMENTO_BADGE,
+  SINALEIRO_COR,
+  SINALEIRO_CAMPOS,
   type TipoCard,
   type TipoAtendimento,
+  type SinaleiroStatus,
 } from "@/lib/utils";
 
 type Card = {
@@ -26,20 +29,21 @@ type Card = {
   veiculo?: string | null;
   local: string;
   motorista?: string | null;
+  ajudante?: string | null;
   acessorios?: string | null;
   obs?: string | null;
   cancelado: boolean;
-  comercialOk: boolean;
-  logisticaOk: boolean;
-  administrativoOk: boolean;
-  manutencaoOk: boolean;
+  comercialOk: SinaleiroStatus;
+  logisticaOk: SinaleiroStatus;
+  administrativoOk: SinaleiroStatus;
+  manutencaoOk: SinaleiroStatus;
   createdBy?: { name: string } | null;
   createdAt: string;
 };
 
-const CARDS_POR_LINHA = 2; // quantidade fixa exibida por linha
-const INTERVALO_ROTACAO = 8000; // 8s
 const INTERVALO_POLL = 60000; // 60s
+const SEGUNDOS_POR_CARD = 6; // velocidade da esteira (~5-8s por card)
+const MIN_CARDS_LOOP = 4; // mínimo de cards no track para um loop suave
 
 function isoOffset(n: number) {
   const d = new Date();
@@ -89,35 +93,23 @@ export function TvClient() {
   );
 }
 
-function LinhaDia({
-  label,
-  cards,
-}: {
-  label: string;
-  cards: Card[];
-}) {
-  const [pagina, setPagina] = useState(0);
-  const totalPaginas = Math.max(1, Math.ceil(cards.length / CARDS_POR_LINHA));
-
-  // Rotação automática quando há mais cards do que cabem na linha
-  useEffect(() => {
-    if (totalPaginas <= 1) {
-      setPagina(0);
-      return;
+function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
+  // Constrói a lista base garantindo um mínimo de cards para o loop ficar suave.
+  // Se houver poucos cards, repete-os até atingir MIN_CARDS_LOOP.
+  const base = useMemo(() => {
+    if (cards.length === 0) return [];
+    let arr = [...cards];
+    while (arr.length < MIN_CARDS_LOOP) {
+      arr = arr.concat(cards);
     }
-    const t = setInterval(() => {
-      setPagina((p) => (p + 1) % totalPaginas);
-    }, INTERVALO_ROTACAO);
-    return () => clearInterval(t);
-  }, [totalPaginas]);
+    return arr;
+  }, [cards]);
 
-  useEffect(() => {
-    // Garante que a página atual é válida quando a lista muda
-    if (pagina >= totalPaginas) setPagina(0);
-  }, [pagina, totalPaginas]);
+  // O track é duplicado (base + base) para permitir o translateX(-50%) sem salto.
+  const track = useMemo(() => [...base, ...base], [base]);
 
-  const inicio = pagina * CARDS_POR_LINHA;
-  const visiveis = cards.slice(inicio, inicio + CARDS_POR_LINHA);
+  // Duração proporcional ao número de cards da base (uma cópia).
+  const duracao = Math.max(base.length * SEGUNDOS_POR_CARD, SEGUNDOS_POR_CARD);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -131,43 +123,62 @@ function LinhaDia({
         </span>
       </div>
 
-      {/* Cards de tamanho fixo */}
-      <div className="flex flex-1 items-stretch gap-2 p-2">
-        {visiveis.length === 0 ? (
+      {/* Esteira horizontal contínua */}
+      <div className="relative flex flex-1 items-stretch overflow-hidden">
+        {cards.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-2xl font-bold text-gray-600">
             Sem agendamentos
           </div>
         ) : (
-          visiveis.map((c) => <TvCard key={c.id} card={c} />)
+          <div
+            className="marquee-track items-stretch gap-2 p-2"
+            style={{ animationDuration: `${duracao}s` }}
+          >
+            {track.map((c, i) => (
+              <TvCard key={`${c.id}-${i}`} card={c} />
+            ))}
+          </div>
         )}
-        {/* Preenche espaços vazios para manter tamanho fixo */}
-        {visiveis.length > 0 &&
-          Array.from({ length: CARDS_POR_LINHA - visiveis.length }).map((_, i) => (
-            <div key={`empty-${i}`} className="flex-1" />
-          ))}
       </div>
-
-      {/* Indicador de páginas */}
-      {totalPaginas > 1 && (
-        <div className="flex w-6 flex-col items-center justify-center gap-1.5">
-          {Array.from({ length: totalPaginas }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-2 w-2 rounded-full ${i === pagina ? "bg-yellow-400" : "bg-gray-600"}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
+// Calcula a classe de fonte com base no volume total de conteúdo do card.
+// Cards com mais texto recebem fonte progressivamente menor (tamanho físico fixo).
+function classeFonteConteudo(card: Card): string {
+  const total = [
+    card.equipamento,
+    card.local,
+    card.acessorios,
+    card.obs,
+    card.veiculo,
+    card.motorista,
+    card.ajudante,
+  ]
+    .filter(Boolean)
+    .join("").length;
+
+  if (total > 320) return "text-[11px] leading-tight";
+  if (total > 200) return "text-xs leading-snug";
+  if (total > 110) return "text-sm leading-snug";
+  return "text-base leading-snug";
+}
+
+// Ajusta o tamanho do nome do cliente conforme o comprimento
+function classeFonteCliente(cliente: string): string {
+  if (cliente.length > 34) return "text-lg";
+  if (cliente.length > 22) return "text-xl";
+  return "text-2xl";
+}
+
 function TvCard({ card }: { card: Card }) {
   const piscando = !card.cancelado && isCardPiscando(card.createdAt, card.data);
+  const fonteConteudo = classeFonteConteudo(card);
 
   return (
     <div
-      className={`relative flex flex-1 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-3 ${
+      className={`relative flex h-full w-[24rem] flex-shrink-0 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-3 ${
         piscando ? "card-novo" : "border-gray-700"
       }`}
     >
@@ -180,7 +191,7 @@ function TvCard({ card }: { card: Card }) {
               alt="CANCELADO"
               fill
               className="object-contain p-2 drop-shadow-lg"
-              sizes="50vw"
+              sizes="24rem"
               priority
             />
           </div>
@@ -203,46 +214,50 @@ function TvCard({ card }: { card: Card }) {
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>
 
-      <p className="truncate text-2xl font-black leading-tight">{card.cliente}</p>
-      <p className="mb-1 truncate text-sm text-gray-300">{formatarData(card.data)}</p>
+      <p className={`font-black leading-tight ${classeFonteCliente(card.cliente)}`}>
+        {card.cliente}
+      </p>
+      <p className="mb-1 text-sm text-gray-300">{formatarData(card.data)}</p>
 
-      <div className="space-y-0.5 text-sm leading-snug">
-        <p><span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}</p>
-        {card.veiculo && <p><span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}</p>}
-        <p className="line-clamp-2"><span className="font-bold text-gray-400">Local:</span> {card.local}</p>
-        {card.motorista && <p><span className="font-bold text-gray-400">Técnico:</span> {card.motorista}</p>}
-        {card.acessorios && (
-          <p className="line-clamp-2"><span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}</p>
+      {/* Bloco de conteúdo com fonte adaptativa e sem line-clamp */}
+      <div className={`min-h-0 flex-1 space-y-0.5 overflow-hidden ${fonteConteudo}`}>
+        <p>
+          <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
+        </p>
+        {card.veiculo && (
+          <p>
+            <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
+          </p>
         )}
-        {card.obs && <p className="line-clamp-1 italic text-gray-400">Obs: {card.obs}</p>}
+        <p>
+          <span className="font-bold text-gray-400">Local:</span> {card.local}
+        </p>
+        {card.motorista && (
+          <p>
+            <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
+          </p>
+        )}
+        {card.ajudante && (
+          <p>
+            <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
+          </p>
+        )}
+        {card.acessorios && (
+          <p>
+            <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
+          </p>
+        )}
+        {card.obs && <p className="italic text-gray-400">Obs: {card.obs}</p>}
       </div>
 
-      {/* Sinaleiros visuais por setor (sem clique) */}
-      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-xs font-bold">
-        <span className="flex items-center gap-1">
-          <span
-            className={`h-3 w-3 rounded-full ${card.comercialOk ? "bg-emerald-400" : "bg-yellow-400"}`}
-          />
-          Comercial
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className={`h-3 w-3 rounded-full ${card.logisticaOk ? "bg-emerald-400" : "bg-yellow-400"}`}
-          />
-          Logística
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className={`h-3 w-3 rounded-full ${card.administrativoOk ? "bg-emerald-400" : "bg-yellow-400"}`}
-          />
-          Administrativo
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className={`h-3 w-3 rounded-full ${card.manutencaoOk ? "bg-emerald-400" : "bg-red-500"}`}
-          />
-          {card.manutencaoOk ? "Manutenção OK" : "Manutenção N/OK"}
-        </span>
+      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-700 pt-2 text-xs font-bold">
+        {SINALEIRO_CAMPOS.map(({ campo, label }) => (
+          <span key={campo} className="flex items-center gap-1">
+            <span className={`h-3 w-3 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
+            {label}
+          </span>
+        ))}
       </div>
 
       {card.createdBy?.name && (

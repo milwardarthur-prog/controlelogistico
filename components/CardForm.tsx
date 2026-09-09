@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 import {
   TIPO_LABELS,
@@ -55,9 +54,17 @@ const vazio: CardData = {
   numeroOrcamento: "",
 };
 
-// Formulário reutilizável para criar e editar cards
-export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
-  const router = useRouter();
+type Props = {
+  inicial?: Partial<CardData>;
+  // Chamado após criar/editar com sucesso (recebe o card retornado pela API)
+  onSuccess?: (card: unknown) => void;
+  // Chamado ao clicar em Cancelar
+  onCancel?: () => void;
+};
+
+// Formulário reutilizável para criar e editar cards.
+// Usa callbacks (onSuccess/onCancel) em vez de navegação, para funcionar em modal.
+export function CardForm({ inicial, onSuccess, onCancel }: Props) {
   const [form, setForm] = useState<CardData>({ ...vazio, ...inicial });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -72,7 +79,6 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
     e.preventDefault();
     setErro("");
 
-    // Validação client-side
     if (!form.data || !form.horario || !form.cliente || !form.equipamento || !form.local) {
       setErro("Preencha os campos obrigatórios: Data, Horário, Cliente, Equipamento e Local.");
       return;
@@ -94,8 +100,8 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    const card = await res.json().catch(() => null);
+    onSuccess?.(card);
   }
 
   const campo =
@@ -103,7 +109,7 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
   const label = "mb-1 block text-sm font-medium text-slate-700";
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label}>Tipo *</label>
@@ -228,7 +234,7 @@ export function CardForm({ inicial }: { inicial?: Partial<CardData> }) {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/dashboard")}
+          onClick={onCancel}
           className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50"
         >
           Cancelar

@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  LayoutDashboard,
-  PlusCircle,
   Calendar,
   Printer,
   History,
@@ -26,8 +24,6 @@ export function Sidebar({ role, nome }: Props) {
   const pathname = usePathname();
 
   const itens = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "TECNICO"] },
-    { href: "/cards/novo", label: "Novo Card", icon: PlusCircle, roles: ["ADMIN"] },
     { href: "/calendario", label: "Calendário", icon: Calendar, roles: ["ADMIN", "TECNICO"] },
     { href: "/impressao", label: "Impressão", icon: Printer, roles: ["ADMIN"] },
     { href: "/historico", label: "Histórico", icon: History, roles: ["ADMIN", "TECNICO"] },
