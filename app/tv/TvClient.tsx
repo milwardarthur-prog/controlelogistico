@@ -264,7 +264,7 @@ function TvCard({
   const PADDING_CARD = 32;        // p-4 topo + base (16 + 16)
   const ALTURA_CABECALHO = 32;    // h-8
   const ALTURA_CLIENTE = 52;      // h-[52px]
-  const ALTURA_SINALEIROS = 36;   // h-9
+  const ALTURA_SINALEIROS = 20;   // h-5
   const GAP_TOTAL = 24;           // 3 gaps de 8px entre as 4 seções (gap-2)
   const ESPACO_FIXO = PADDING_CARD + ALTURA_CABECALHO + ALTURA_CLIENTE + ALTURA_SINALEIROS + GAP_TOTAL;
 
@@ -421,11 +421,11 @@ function TvCard({
         </div>
       </div>
 
-      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — h-9 = 36px */}
-      <div className="flex h-9 flex-shrink-0 flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden border-t border-gray-700 pt-1 text-xs font-bold">
+      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — h-5 = 20px */}
+      <div className="flex h-5 flex-shrink-0 flex-wrap items-center gap-x-1.5 gap-y-0 overflow-hidden border-t border-gray-700 pt-0.5 text-[9px] font-bold leading-none">
         {SINALEIRO_CAMPOS.map(({ campo, label }) => (
-          <span key={campo} className="flex items-center gap-1">
-            <span className={`h-3 w-3 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
+          <span key={campo} className="flex items-center gap-0.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
             {label}
           </span>
         ))}
