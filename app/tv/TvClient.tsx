@@ -380,7 +380,7 @@ function TvCard({
       {/* Cliente + data — h-[52px] = 52px */}
       <div className="h-[52px] flex-shrink-0 overflow-hidden">
         <p
-          className={`break-words font-black leading-tight ${classeFonteCliente(card.cliente)}`}
+          className={`overflow-hidden text-ellipsis whitespace-nowrap font-black leading-tight ${classeFonteCliente(card.cliente)}`}
         >
           {card.cliente}
         </p>
