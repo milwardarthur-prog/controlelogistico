@@ -259,10 +259,15 @@ function TvCard({
 }) {
   const piscando = !card.cancelado && isCardPiscando(card.createdAt, card.data);
 
-  // refs para medição real do DOM
-  const cabecalhoRef = useRef<HTMLDivElement>(null);
-  const clienteRef = useRef<HTMLDivElement>(null);
-  const sinaleirosRef = useRef<HTMLDivElement>(null);
+  // Moldura fixa — não precisam de ref, pois têm altura definida em CSS.
+  // Alterar aqui se o layout do cabeçalho/rodapé mudar.
+  const PADDING_CARD = 32;        // p-4 topo + base (16 + 16)
+  const ALTURA_CABECALHO = 32;    // h-8
+  const ALTURA_CLIENTE = 52;      // h-[52px]
+  const ALTURA_SINALEIROS = 36;   // h-9
+  const GAP_TOTAL = 24;           // 3 gaps de 8px entre as 4 seções (gap-2)
+  const ESPACO_FIXO = PADDING_CARD + ALTURA_CABECALHO + ALTURA_CLIENTE + ALTURA_SINALEIROS + GAP_TOTAL;
+
   // Elemento INVISÍVEL de medição: largura real do card, SEM transform.
   // A escala é lida somente deste elemento, nunca do elemento visível — assim
   // a compensação de largura (width: calc) não realimenta o scrollHeight medido.
@@ -295,14 +300,7 @@ function TvCard({
   useLayoutEffect(() => {
     if (!measureRef.current || !alturaDisponivel) return;
 
-    // Padding vertical do card (p-4 = 16px topo + 16px base)
-    const PADDING = 32;
-    const hCabecalho = cabecalhoRef.current?.offsetHeight ?? 0;
-    const hCliente = clienteRef.current?.offsetHeight ?? 0;
-    const hSinaleiros = sinaleirosRef.current?.offsetHeight ?? 0;
-
-    const espacoFixo = PADDING + hCabecalho + hCliente + hSinaleiros;
-    const espacoConteudo = alturaDisponivel - espacoFixo;
+    const espacoConteudo = alturaDisponivel - ESPACO_FIXO;
     if (espacoConteudo <= 0) return;
 
     // scrollHeight do CLONE invisível (largura real, sem escala aplicada)
@@ -341,7 +339,7 @@ function TvCard({
 
   return (
     <div
-      className={`relative flex w-[460px] max-w-[560px] flex-shrink-0 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-4 ${
+      className={`relative flex w-[460px] max-w-[560px] flex-shrink-0 flex-col gap-2 overflow-hidden rounded-lg border-4 bg-gray-900 p-4 ${
         piscando ? "card-novo" : "border-gray-700"
       }`}
       style={alturaEstilo}
@@ -362,8 +360,8 @@ function TvCard({
         </div>
       )}
 
-      {/* Cabeçalho fixo: badges + horário */}
-      <div ref={cabecalhoRef} className="flex items-center justify-between gap-1">
+      {/* Cabeçalho fixo: badges + horário — h-8 = 32px */}
+      <div className="flex h-8 flex-shrink-0 items-center justify-between gap-1 overflow-hidden">
         <div className="flex flex-wrap items-center gap-1">
           <span
             className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
@@ -379,8 +377,8 @@ function TvCard({
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>
 
-      {/* Cliente + data (fixo) */}
-      <div ref={clienteRef} className="mb-1 mt-1">
+      {/* Cliente + data — h-[52px] = 52px */}
+      <div className="h-[52px] flex-shrink-0 overflow-hidden">
         <p
           className={`break-words font-black leading-tight ${classeFonteCliente(card.cliente)}`}
         >
@@ -423,11 +421,8 @@ function TvCard({
         </div>
       </div>
 
-      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — fixo */}
-      <div
-        ref={sinaleirosRef}
-        className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-700 pt-2 text-xs font-bold"
-      >
+      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — h-9 = 36px */}
+      <div className="flex h-9 flex-shrink-0 flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden border-t border-gray-700 pt-1 text-xs font-bold">
         {SINALEIRO_CAMPOS.map(({ campo, label }) => (
           <span key={campo} className="flex items-center gap-1">
             <span className={`h-3 w-3 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
