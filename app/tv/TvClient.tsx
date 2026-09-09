@@ -42,7 +42,7 @@ type Card = {
 };
 
 const INTERVALO_POLL = 60000; // 60s
-const SEGUNDOS_POR_CARD = 6; // velocidade da esteira (~5-8s por card)
+const SEGUNDOS_POR_CARD = 14; // velocidade lenta e confortável para leitura (~14s por card)
 const MIN_CARDS_LOOP = 4; // mínimo de cards no track para um loop suave
 
 function isoOffset(n: number) {
@@ -131,7 +131,7 @@ function LinhaDia({ label, cards }: { label: string; cards: Card[] }) {
           </div>
         ) : (
           <div
-            className="marquee-track items-stretch gap-2 p-2"
+            className="marquee-track items-stretch gap-3 p-2"
             style={{ animationDuration: `${duracao}s` }}
           >
             {track.map((c, i) => (
@@ -178,7 +178,7 @@ function TvCard({ card }: { card: Card }) {
 
   return (
     <div
-      className={`relative flex h-full w-[24rem] flex-shrink-0 flex-col overflow-hidden rounded-lg border-4 bg-gray-900 p-3 ${
+      className={`relative flex h-full w-[460px] max-w-[560px] flex-shrink-0 flex-col rounded-lg border-4 bg-gray-900 p-4 ${
         piscando ? "card-novo" : "border-gray-700"
       }`}
     >
@@ -191,7 +191,7 @@ function TvCard({ card }: { card: Card }) {
               alt="CANCELADO"
               fill
               className="object-contain p-2 drop-shadow-lg"
-              sizes="24rem"
+              sizes="560px"
               priority
             />
           </div>
@@ -214,40 +214,47 @@ function TvCard({ card }: { card: Card }) {
         <span className="text-xl font-black text-yellow-400">{card.horario}</span>
       </div>
 
-      <p className={`font-black leading-tight ${classeFonteCliente(card.cliente)}`}>
+      <p
+        className={`break-words font-black leading-tight ${classeFonteCliente(card.cliente)}`}
+      >
         {card.cliente}
       </p>
-      <p className="mb-1 text-sm text-gray-300">{formatarData(card.data)}</p>
+      <p className="mb-2 text-sm text-gray-300">{formatarData(card.data)}</p>
 
-      {/* Bloco de conteúdo com fonte adaptativa e sem line-clamp */}
-      <div className={`min-h-0 flex-1 space-y-0.5 overflow-hidden ${fonteConteudo}`}>
-        <p>
+      {/* Bloco de conteúdo: fonte adaptativa, sem line-clamp/truncate.
+          Todos os campos quebram linha (whitespace-normal + break-words). */}
+      <div className={`min-h-0 flex-1 space-y-1 ${fonteConteudo}`}>
+        <p className="whitespace-normal break-words">
           <span className="font-bold text-gray-400">Equip.:</span> {card.equipamento}
         </p>
+        <p className="whitespace-normal break-words">
+          <span className="font-bold text-gray-400">Local:</span> {card.local}
+        </p>
         {card.veiculo && (
-          <p>
+          <p className="whitespace-normal break-words">
             <span className="font-bold text-gray-400">Veículo:</span> {card.veiculo}
           </p>
         )}
-        <p>
-          <span className="font-bold text-gray-400">Local:</span> {card.local}
-        </p>
         {card.motorista && (
-          <p>
+          <p className="whitespace-normal break-words">
             <span className="font-bold text-gray-400">Técnico:</span> {card.motorista}
           </p>
         )}
         {card.ajudante && (
-          <p>
+          <p className="whitespace-normal break-words">
             <span className="font-bold text-gray-400">Ajudante:</span> {card.ajudante}
           </p>
         )}
         {card.acessorios && (
-          <p>
+          <p className="whitespace-normal break-words">
             <span className="font-bold text-gray-400">Acess.:</span> {card.acessorios}
           </p>
         )}
-        {card.obs && <p className="italic text-gray-400">Obs: {card.obs}</p>}
+        {card.obs && (
+          <p className="whitespace-normal break-words italic text-gray-400">
+            Obs: {card.obs}
+          </p>
+        )}
       </div>
 
       {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) */}
