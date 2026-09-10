@@ -201,6 +201,14 @@ function classeFonteCliente(cliente: string): string {
   return "text-2xl";
 }
 
+// Horário é texto livre (ex: "1° HORÁRIO", "APÓS BELMIRO BRAGA"), não apenas
+// um relógio — reduz a fonte para caber numa única linha do cabeçalho fixo.
+function classeFonteHorario(horario: string): string {
+  if (horario.length > 18) return "text-xs";
+  if (horario.length > 12) return "text-base";
+  return "text-xl";
+}
+
 // Campos de conteúdo variável do card. Renderizado tanto no elemento visível
 // (que recebe a escala) quanto no elemento invisível de medição (measureRef).
 // Manter os dois idênticos é essencial para que a medição seja fiel.
@@ -362,7 +370,7 @@ function TvCard({
 
       {/* Cabeçalho fixo: badges + horário — h-8 = 32px */}
       <div className="flex h-8 flex-shrink-0 items-center justify-between gap-1 overflow-hidden">
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex flex-shrink-0 items-center gap-1">
           <span
             className={`rounded px-2 py-0.5 text-xs font-bold ${TIPO_BADGE_TV[card.tipo]}`}
           >
@@ -374,7 +382,11 @@ function TvCard({
             {labelAtendimento(card.tipoAtendimento)}
           </span>
         </div>
-        <span className="text-xl font-black text-yellow-400">{card.horario}</span>
+        <span
+          className={`min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-right font-black text-yellow-400 ${classeFonteHorario(card.horario)}`}
+        >
+          {card.horario}
+        </span>
       </div>
 
       {/* Cliente + data — h-[52px] = 52px */}
