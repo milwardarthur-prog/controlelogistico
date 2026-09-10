@@ -19,11 +19,8 @@ import {
   labelAtendimento,
   TIPO_BADGE_TV,
   ATENDIMENTO_BADGE,
-  SINALEIRO_COR,
-  SINALEIRO_CAMPOS,
   type TipoCard,
   type TipoAtendimento,
-  type SinaleiroStatus,
 } from "@/lib/utils";
 
 type Card = {
@@ -41,10 +38,6 @@ type Card = {
   acessorios?: string | null;
   obs?: string | null;
   cancelado: boolean;
-  comercialOk: SinaleiroStatus;
-  logisticaOk: SinaleiroStatus;
-  administrativoOk: SinaleiroStatus;
-  manutencaoOk: SinaleiroStatus;
   createdBy?: { name: string } | null;
   createdAt: string;
 };
@@ -272,9 +265,8 @@ function TvCard({
   const PADDING_CARD = 32;        // p-4 topo + base (16 + 16)
   const ALTURA_CABECALHO = 32;    // h-8
   const ALTURA_CLIENTE = 52;      // h-[52px]
-  const ALTURA_SINALEIROS = 20;   // h-5
-  const GAP_TOTAL = 16;           // 2 gaps de 8px (gap-2) entre cabeçalho/cliente/conteúdo; sinaleiros em mt-auto
-  const ESPACO_FIXO = PADDING_CARD + ALTURA_CABECALHO + ALTURA_CLIENTE + ALTURA_SINALEIROS + GAP_TOTAL;
+  const GAP_TOTAL = 16;           // 2 gaps de 8px (gap-2) entre cabeçalho/cliente/conteúdo
+  const ESPACO_FIXO = PADDING_CARD + ALTURA_CABECALHO + ALTURA_CLIENTE + GAP_TOTAL;
 
   // Elemento INVISÍVEL de medição: largura real do card, SEM transform.
   // A escala é lida somente deste elemento, nunca do elemento visível — assim
@@ -431,16 +423,6 @@ function TvCard({
             mostrarAcessorios={mostrarAcessorios}
           />
         </div>
-      </div>
-
-      {/* Sinaleiros por setor (3 estados: amarelo/verde/vermelho) — h-5 = 20px, mt-auto cola ao fundo */}
-      <div className="mt-auto flex h-5 flex-shrink-0 flex-wrap items-center gap-x-1.5 gap-y-0 overflow-hidden border-t border-gray-700 pt-0.5 text-[9px] font-bold leading-none">
-        {SINALEIRO_CAMPOS.map(({ campo, label }) => (
-          <span key={campo} className="flex items-center gap-0.5">
-            <span className={`h-1.5 w-1.5 rounded-full ${SINALEIRO_COR[card[campo]]}`} />
-            {label}
-          </span>
-        ))}
       </div>
     </div>
   );
