@@ -33,7 +33,7 @@ export function isCardNovo(createdAt: Date | string): boolean {
 export type TipoCard =
   | "ENTREGA" | "ENTREGA_BASE" | "ENTREGA_INST_ACOMP" | "ENTREGA_INST" | "ENTREGA_INST_RETI"
   | "TROCA" | "INSTALACAO" | "DESINSTALACAO" | "ACOMPANHAMENTO_TECNICO"
-  | "RETIRADA" | "DEVOLUCAO" | "VISTORIA_BOMBEIROS";
+  | "RETIRADA" | "DEVOLUCAO" | "VISTORIA_BOMBEIROS" | "ABASTECIMENTO";
 
 export const TIPO_LABELS: Record<TipoCard, string> = {
   ENTREGA: "Entrega",
@@ -48,6 +48,7 @@ export const TIPO_LABELS: Record<TipoCard, string> = {
   RETIRADA: "Retirada",
   DEVOLUCAO: "Devolução",
   VISTORIA_BOMBEIROS: "Vistoria Bombeiros",
+  ABASTECIMENTO: "Abastecimento",
 };
 
 export const TIPO_BADGE_TV: Record<TipoCard, string> = {
@@ -63,6 +64,7 @@ export const TIPO_BADGE_TV: Record<TipoCard, string> = {
   RETIRADA: "bg-amber-600",
   DEVOLUCAO: "bg-rose-600",
   VISTORIA_BOMBEIROS: "bg-red-600",
+  ABASTECIMENTO: "bg-lime-600",
 };
 
 export const TIPO_PONTO: Record<TipoCard, string> = {
@@ -78,6 +80,7 @@ export const TIPO_PONTO: Record<TipoCard, string> = {
   RETIRADA: "bg-amber-500",
   DEVOLUCAO: "bg-rose-500",
   VISTORIA_BOMBEIROS: "bg-red-500",
+  ABASTECIMENTO: "bg-lime-500",
 };
 
 export const TIPO_COR: Record<TipoCard, string> = {
@@ -93,6 +96,7 @@ export const TIPO_COR: Record<TipoCard, string> = {
   RETIRADA: "amber",
   DEVOLUCAO: "rose",
   VISTORIA_BOMBEIROS: "red",
+  ABASTECIMENTO: "lime",
 };
 
 export type TipoAtendimento = "EVENTO" | "OBRA" | "DESLIGAMENTO";

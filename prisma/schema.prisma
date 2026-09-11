@@ -26,6 +26,7 @@ enum TipoCard {
   RETIRADA
   DEVOLUCAO
   VISTORIA_BOMBEIROS
+  ABASTECIMENTO
 }
 
 enum TipoAtendimento {
