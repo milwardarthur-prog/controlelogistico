@@ -63,6 +63,20 @@ async function enviarWhatsapp(texto: string) {
   }
 }
 
+// Avisa o healthchecks.io (monitor externo) do resultado do envio. Se HEALTHCHECK_URL
+// não estiver configurada, não faz nada — o alerta é opcional, não bloqueia o fluxo.
+// Falha ao notificar o healthchecks.io nunca deve derrubar a rota (por isso o catch mudo).
+async function notificarHealthcheck(sucesso: boolean, detalhe?: string) {
+  const base = process.env.HEALTHCHECK_URL;
+  if (!base) return;
+  const url = sucesso ? base : `${base}/fail`;
+  try {
+    await fetch(url, { method: "POST", body: detalhe ?? "" });
+  } catch {
+    // sem monitor de monitor — se o próprio healthchecks.io estiver fora do ar, seguimos em frente
+  }
+}
+
 // GET /api/cron/whatsapp-diario — disparado pelo Vercel Cron todo dia às 17h
 // (horário de Brasília). Protegido por CRON_SECRET: só o Vercel Cron (ou uma
 // chamada manual com o header Authorization correto) consegue acionar o envio.
@@ -72,11 +86,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const amanha = isoAmanha();
-  const cards = await buscarCardsDoDia(amanha);
-  const mensagem = montarMensagem(cards, amanha);
+  try {
+    const amanha = isoAmanha();
+    const cards = await buscarCardsDoDia(amanha);
+    const mensagem = montarMensagem(cards, amanha);
 
-  await enviarWhatsapp(mensagem);
+    await enviarWhatsapp(mensagem);
+    await notificarHealthcheck(true);
 
-  return NextResponse.json({ enviado: true, cards: cards.length, data: amanha });
+    return NextResponse.json({ enviado: true, cards: cards.length, data: amanha });
+  } catch (erro) {
+    const mensagemErro = erro instanceof Error ? erro.message : String(erro);
+    await notificarHealthcheck(false, mensagemErro);
+    return NextResponse.json({ enviado: false, error: mensagemErro }, { status: 500 });
+  }
 }
