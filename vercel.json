@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/whatsapp-diario",
+      "schedule": "0 20 * * *"
+    }
+  ]
+}
