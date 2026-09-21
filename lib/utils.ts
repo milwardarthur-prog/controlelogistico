@@ -99,6 +99,21 @@ export const TIPO_COR: Record<TipoCard, string> = {
   ABASTECIMENTO: "lime",
 };
 
+export const VEICULOS = [
+  "Bongo",
+  "HR",
+  "Iveco",
+  "15-180",
+  "17-180",
+  "24-250",
+  "Carretinha 1 (Maior)",
+  "Carretinha 2 (Menor)",
+  "Ranger",
+  "Saveiro",
+  "Cliente",
+  "Outro",
+] as const;
+
 export type TipoAtendimento = "EVENTO" | "OBRA" | "DESLIGAMENTO";
 
 export const ATENDIMENTO_LABELS: Record<TipoAtendimento, string> = {
