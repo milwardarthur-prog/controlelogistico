@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus, Save, X } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import {
   TIPO_LABELS,
   ATENDIMENTO_LABELS,
   VEICULOS,
+  MOTORISTAS,
   type TipoCard,
   type TipoAtendimento,
 } from "@/lib/utils";
+import { SelecaoMultipla } from "@/components/SelecaoMultipla";
 
 export type CardData = {
   id?: string;
@@ -55,18 +57,6 @@ const vazio: CardData = {
   numeroOrcamento: "",
 };
 
-const SEPARADOR_VEICULOS = " + ";
-
-// Cards com mais de um veículo guardam tudo em um único texto ("24-250 + Bongo").
-// Ao editar, separa de volta e alinha a grafia com a lista padrão (ex: "BONGO" -> "Bongo").
-function separarVeiculos(texto: string): string[] {
-  if (!texto.trim()) return [""];
-  return texto.split("+").map((parte) => {
-    const v = parte.trim();
-    return VEICULOS.find((opcao) => opcao.toLowerCase() === v.toLowerCase()) ?? v;
-  });
-}
-
 type Props = {
   inicial?: Partial<CardData>;
   // Chamado após criar/editar com sucesso (recebe o card retornado pela API)
@@ -81,19 +71,11 @@ export function CardForm({ inicial, onSuccess, onCancel }: Props) {
   const [form, setForm] = useState<CardData>({ ...vazio, ...inicial });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const [veiculos, setVeiculos] = useState<string[]>(() =>
-    separarVeiculos(inicial?.veiculo ?? "")
-  );
 
   const edicao = Boolean(inicial?.id);
 
   function set<K extends keyof CardData>(campo: K, valor: CardData[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
-  }
-
-  function atualizarVeiculos(proximos: string[]) {
-    setVeiculos(proximos);
-    set("veiculo", proximos.filter(Boolean).join(SEPARADOR_VEICULOS));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -184,53 +166,15 @@ export function CardForm({ inicial, onSuccess, onCancel }: Props) {
         </div>
         <div>
           <label className={label}>Veículo</label>
-          <div className="space-y-2">
-            {veiculos.map((selecionado, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <select
-                  value={selecionado}
-                  onChange={(e) => {
-                    const proximos = [...veiculos];
-                    proximos[i] = e.target.value;
-                    atualizarVeiculos(proximos);
-                  }}
-                  className={campo}
-                >
-                  <option value="">Selecione...</option>
-                  {/* Cards antigos têm texto livre; mantém o valor atual selecionável para não apagá-lo ao editar */}
-                  {selecionado && !(VEICULOS as readonly string[]).includes(selecionado) && (
-                    <option value={selecionado}>{selecionado} (fora do padrão)</option>
-                  )}
-                  {VEICULOS.filter(
-                    (v) => v === selecionado || v === "Outro" || !veiculos.includes(v)
-                  ).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                {veiculos.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => atualizarVeiculos(veiculos.filter((_, j) => j !== i))}
-                    className="rounded-lg border border-slate-300 p-2 text-slate-500 hover:bg-slate-100"
-                    aria-label="Remover veículo"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-            {veiculos[veiculos.length - 1] && (
-              <button
-                type="button"
-                onClick={() => setVeiculos([...veiculos, ""])}
-                className="flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900"
-              >
-                <Plus className="h-4 w-4" /> Adicionar veículo
-              </button>
-            )}
-          </div>
+          <SelecaoMultipla
+            valor={form.veiculo}
+            opcoes={VEICULOS}
+            onChange={(v) => set("veiculo", v)}
+            classeCampo={campo}
+            rotuloAdicionar="Adicionar veículo"
+            rotuloRemover="Remover veículo"
+            permiteRepetir={["Outro"]}
+          />
         </div>
         <div>
           <label className={label}>Período</label>
@@ -259,7 +203,15 @@ export function CardForm({ inicial, onSuccess, onCancel }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label}>Motorista</label>
-          <input value={form.motorista} onChange={(e) => set("motorista", e.target.value)} className={campo} />
+          <SelecaoMultipla
+            valor={form.motorista}
+            opcoes={MOTORISTAS}
+            onChange={(v) => set("motorista", v)}
+            classeCampo={campo}
+            rotuloAdicionar="Adicionar motorista"
+            rotuloRemover="Remover motorista"
+            permiteRepetir={["Outro/Externo"]}
+          />
         </div>
         <div>
           <label className={label}>Ajudante</label>

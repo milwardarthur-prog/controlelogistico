@@ -9,6 +9,7 @@ import {
   Printer,
   History,
   Wrench,
+  LayoutDashboard,
   Tv,
   LogOut,
   Truck,
@@ -52,6 +53,7 @@ export function Sidebar({ role, nome }: Props) {
     { href: "/impressao", label: "Impressão", icon: Printer, roles: ["ADMIN"] },
     { href: "/historico", label: "Histórico", icon: History, roles: ["ADMIN", "TECNICO"] },
     { href: "/manutencao", label: "Manutenção", icon: Wrench, roles: ["ADMIN", "TECNICO"] },
+    { href: "/dashboard", label: "Dashboards", icon: LayoutDashboard, roles: ["ADMIN"] },
   ].filter((i) => i.roles.includes(role));
 
   return (

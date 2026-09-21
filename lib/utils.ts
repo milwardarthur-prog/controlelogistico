@@ -114,6 +114,22 @@ export const VEICULOS = [
   "Outro",
 ] as const;
 
+export const MOTORISTAS = [
+  "Pablio",
+  "Sebastião",
+  "Gilsimar",
+  "Alex",
+  "Ricardo",
+  "Valmir",
+  "Henrique",
+  "Windson",
+  "Lucas",
+  "Eduardo",
+  "Nicolas",
+  "Diego",
+  "Outro/Externo",
+] as const;
+
 export type TipoAtendimento = "EVENTO" | "OBRA" | "DESLIGAMENTO";
 
 export const ATENDIMENTO_LABELS: Record<TipoAtendimento, string> = {
