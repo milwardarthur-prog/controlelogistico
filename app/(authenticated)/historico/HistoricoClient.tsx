@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { FileSpreadsheet, Loader2, Search } from "lucide-react";
 import {
   formatarData,
   labelTipo,
@@ -10,24 +10,10 @@ import {
   ATENDIMENTO_BADGE,
   TIPO_LABELS,
   type TipoCard,
-  type TipoAtendimento,
 } from "@/lib/utils";
+import { exportarHistoricoExcel, type CardExport } from "@/lib/exportarHistorico";
 
-type Card = {
-  id: string;
-  tipo: TipoCard;
-  tipoAtendimento: TipoAtendimento;
-  data: string;
-  horario: string;
-  cliente: string;
-  equipamento: string;
-  veiculo?: string | null;
-  local: string;
-  motorista?: string | null;
-  ajudante?: string | null;
-  cancelado: boolean;
-  createdBy?: { name: string } | null;
-};
+type Card = CardExport;
 
 function hojeIso() {
   return new Date().toISOString().slice(0, 10);
@@ -42,6 +28,7 @@ export function HistoricoClient() {
   const [tipo, setTipo] = useState("");
   const [cards, setCards] = useState<Card[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [exportando, setExportando] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -84,6 +71,15 @@ export function HistoricoClient() {
       })
       .sort((a, b) => b.data.localeCompare(a.data));
   }, [cards, dataInicio, cliente, equipamento, motorista, tipo]);
+
+  async function exportar() {
+    setExportando(true);
+    try {
+      await exportarHistoricoExcel(filtrados);
+    } finally {
+      setExportando(false);
+    }
+  }
 
   const campo =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900";
@@ -144,7 +140,7 @@ export function HistoricoClient() {
             className={campo}
           />
         </div>
-        <div className="sm:col-span-3">
+        <div className="flex flex-wrap gap-2 sm:col-span-3">
           <button
             onClick={carregar}
             disabled={carregando}
@@ -156,6 +152,18 @@ export function HistoricoClient() {
               <Search className="h-4 w-4" />
             )}
             Buscar
+          </button>
+          <button
+            onClick={exportar}
+            disabled={exportando || carregando || filtrados.length === 0}
+            className="flex items-center gap-2 rounded-lg border border-emerald-600 px-5 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+          >
+            {exportando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            Exportar Excel
           </button>
         </div>
       </div>
