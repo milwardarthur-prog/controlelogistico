@@ -36,7 +36,6 @@ const DIAS_CABECALHO = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 const ATENDIMENTOS = Object.keys(ATENDIMENTO_LABELS) as TipoAtendimento[];
 
 const LINHAS = [
-  { chave: SEM_TECNICO, nome: "Sem técnico" },
   ...MOTORISTAS.map((nome) => ({ chave: nome as string, nome: nome as string })),
   { chave: TEMPORARIO, nome: "Temporário / outros" },
 ];
@@ -192,6 +191,7 @@ export function EscalaClient({ podeEditar }: { podeEditar: boolean }) {
     for (const card of visiveis) {
       const dia = chaveData(card.data);
       for (const { chave, papel } of linhasDoCard(card)) {
+        if (chave === SEM_TECNICO) continue;
         const k = `${chave}|${dia}`;
         const lista = celulas.get(k) ?? [];
         lista.push({ card, papel });
@@ -280,12 +280,8 @@ export function EscalaClient({ podeEditar }: { podeEditar: boolean }) {
       const nova: Pessoa = { tipo: "lista", nome: destino };
       const trocar = (lista: Pessoa[]) =>
         lista.map((p) => (p.tipo === "lista" && p.nome === origem ? nova : p));
-      if (origem === SEM_TECNICO) {
-        body.motorista = textoDePessoas([nova]);
-      } else {
-        body.motorista = textoDePessoas(trocar(mot));
-        body.ajudante = textoDePessoas(trocar(aj));
-      }
+      body.motorista = textoDePessoas(trocar(mot));
+      body.ajudante = textoDePessoas(trocar(aj));
     }
     if (mudouDia) body.data = diaDestino;
 
@@ -381,7 +377,7 @@ export function EscalaClient({ podeEditar }: { podeEditar: boolean }) {
       {podeEditar && (
         <p className="mb-3 text-xs text-slate-500">
           Clique em um dia da linha de uma pessoa para marcar ou desmarcar indisponibilidade (arraste para vários
-          dias). Arraste um card para a linha de uma pessoa para escalá-la.
+          dias). Arraste um card para a linha de outra pessoa para trocar quem está escalado. Cards sem ninguém escalado só aparecem no Calendário.
         </p>
       )}
 
@@ -427,7 +423,7 @@ export function EscalaClient({ podeEditar }: { podeEditar: boolean }) {
             ))}
 
             {LINHAS.map((linha) => {
-              const ehPessoa = linha.chave !== SEM_TECNICO && linha.chave !== TEMPORARIO;
+              const ehPessoa = linha.chave !== TEMPORARIO;
               return (
                 <div key={linha.chave} className="contents">
                   <div
