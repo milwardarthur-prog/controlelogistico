@@ -19,6 +19,7 @@ import {
   Wrench,
   Plus,
   Pencil,
+  Copy,
   Ban,
   RotateCcw,
   Trash2,
@@ -119,6 +120,13 @@ function cardParaFormulario(c: Card): Partial<CardData> {
     numeroContrato: c.numeroContrato ?? "",
     numeroOrcamento: c.numeroOrcamento ?? "",
   };
+}
+
+// Quantas semanas a data está distante da semana atual (negativo = passado)
+function semanasAteData(dataIso: string): number {
+  const alvo = segundaDaSemana(new Date(dataIso + "T00:00:00.000Z"));
+  const atual = segundaDaSemana(new Date());
+  return Math.round((alvo.getTime() - atual.getTime()) / (7 * 86400000));
 }
 
 export function CalendarioClient() {
@@ -231,6 +239,14 @@ export function CalendarioClient() {
         prev.map((c) => (c.id === cardId ? { ...c, data: dataAnterior } : c))
       );
     }
+  }
+
+  // Após copiar um card, vai para a semana do novo card para o usuário vê-lo
+  function aoCopiar(novo: { data?: string } | null) {
+    setCardSelecionado(null);
+    const alvo = novo?.data ? semanasAteData(chaveData(novo.data)) : offset;
+    if (alvo === offset) carregar();
+    else setOffset(alvo);
   }
 
   function abrirNovo(dataIso?: string) {
@@ -357,6 +373,7 @@ export function CalendarioClient() {
           card={cardSelecionado}
           onClose={() => setCardSelecionado(null)}
           onChanged={carregar}
+          onCopied={aoCopiar}
           onDeleted={() => {
             setCardSelecionado(null);
             carregar();
@@ -519,14 +536,17 @@ function CardModal({
   card,
   onClose,
   onChanged,
+  onCopied,
   onDeleted,
 }: {
   card: Card;
   onClose: () => void;
   onChanged: () => void;
+  onCopied: (novo: { data?: string } | null) => void;
   onDeleted: () => void;
 }) {
   const [editando, setEditando] = useState(false);
+  const [copiando, setCopiando] = useState(false);
   const [motorista, setMotorista] = useState(card.motorista ?? "");
   const [ajudante, setAjudante] = useState(card.ajudante ?? "");
   const [salvandoEquipe, setSalvandoEquipe] = useState(false);
@@ -591,6 +611,23 @@ function CardModal({
             onChanged();
           }}
           onCancel={() => setEditando(false)}
+        />
+      </ModalWrapper>
+    );
+  }
+
+  if (copiando) {
+    return (
+      <ModalWrapper titulo="Copiar Card" onClose={onClose}>
+        <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          Os dados de &quot;{card.cliente}&quot; foram copiados. Ajuste o que for diferente (data,
+          horário, equipamento...) e salve para criar um novo card. Sinaleiros e cancelamento
+          começam do zero.
+        </p>
+        <CardForm
+          inicial={{ ...cardParaFormulario(card), id: undefined }}
+          onSuccess={(novo) => onCopied(novo as { data?: string } | null)}
+          onCancel={() => setCopiando(false)}
         />
       </ModalWrapper>
     );
@@ -706,6 +743,12 @@ function CardModal({
             className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             <Pencil className="h-4 w-4" /> Editar
+          </button>
+          <button
+            onClick={() => setCopiando(true)}
+            className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Copy className="h-4 w-4" /> Copiar
           </button>
           <button
             onClick={toggleCancelado}
