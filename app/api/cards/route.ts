@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { validarEscalacao } from "@/lib/indisponibilidade";
 import { TipoCard, TipoAtendimento, Prisma } from "@prisma/client";
 
 // GET /api/cards — lista cards, com filtro opcional por intervalo de datas.
@@ -54,13 +55,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const dataCard = new Date(body.data + "T00:00:00.000Z");
+  const conflito = await validarEscalacao({
+    data: dataCard,
+    motorista: body.motorista,
+    ajudante: body.ajudante,
+  });
+  if (conflito) {
+    return NextResponse.json({ error: conflito }, { status: 409 });
+  }
+
   const card = await prisma.card.create({
     data: {
       tipo: (body.tipo as TipoCard) || TipoCard.ENTREGA,
       tipoAtendimento:
         (body.tipoAtendimento as TipoAtendimento) || TipoAtendimento.EVENTO,
       createdById: session.user.id,
-      data: new Date(body.data + "T00:00:00.000Z"),
+      data: dataCard,
       horario: body.horario,
       cliente: body.cliente,
       equipamento: body.equipamento,

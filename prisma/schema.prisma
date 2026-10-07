@@ -84,6 +84,17 @@ model Card {
   updatedAt       DateTime        @updatedAt
 }
 
+// Dia em que uma pessoa (nome da lista oficial) está indisponível para escala.
+model IndisponibilidadeTecnico {
+  id        String   @id @default(cuid())
+  pessoa    String
+  data      DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([pessoa, data])
+  @@index([data])
+}
+
 model ManutencaoVeiculo {
   id        String   @id @default(cuid())
   veiculo   String

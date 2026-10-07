@@ -141,6 +141,7 @@ export function CalendarioClient() {
   const [novoModalData, setNovoModalData] = useState<string | null>(null); // data pré-preenchida
   const [novoAberto, setNovoAberto] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -237,7 +238,9 @@ export function CalendarioClient() {
       body: JSON.stringify({ data: novaData }),
     });
     if (!res.ok) {
-      // Reverte em caso de falha
+      // Reverte em caso de falha (ex: equipe indisponível no novo dia)
+      const j = await res.json().catch(() => ({}));
+      setAviso(j.error || "Não foi possível mover o card.");
       setCards((prev) =>
         prev.map((c) => (c.id === cardId ? { ...c, data: dataAnterior } : c))
       );
@@ -293,6 +296,18 @@ export function CalendarioClient() {
           </button>
         </div>
       </div>
+
+      {aviso && (
+        <div
+          role="alert"
+          className="mb-3 flex items-start justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          <span>{aviso}</span>
+          <button onClick={() => setAviso(null)} aria-label="Fechar aviso" className="flex-shrink-0">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <DndContext
         sensors={sensors}
@@ -550,6 +565,7 @@ function CardModal({
 }) {
   const [editando, setEditando] = useState(false);
   const [copiando, setCopiando] = useState(false);
+  const [erro, setErro] = useState("");
   const [motorista, setMotorista] = useState(card.motorista ?? "");
   const [ajudante, setAjudante] = useState(card.ajudante ?? "");
   const [salvandoEquipe, setSalvandoEquipe] = useState(false);
@@ -562,11 +578,16 @@ function CardModal({
   }, [card.id, card.motorista, card.ajudante]);
 
   async function patch(body: Record<string, unknown>) {
+    setErro("");
     const res = await fetch(`/api/cards/${card.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setErro(j.error || "Não foi possível salvar.");
+    }
     return res.ok;
   }
 
@@ -754,6 +775,12 @@ function CardModal({
             Salvar equipe
           </button>
         </div>
+
+        {erro && (
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            {erro}
+          </p>
+        )}
 
         {/* Ações */}
         <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">

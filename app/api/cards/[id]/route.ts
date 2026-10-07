@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { validarEscalacao } from "@/lib/indisponibilidade";
 import { TipoCard, TipoAtendimento, SinaleiroStatus, Prisma } from "@prisma/client";
 
 const incluirCriador = { createdBy: { select: { name: true } } };
@@ -47,6 +48,17 @@ export async function PUT(
   const existente = await prisma.card.findUnique({ where: { id: params.id } });
   if (!existente) {
     return NextResponse.json({ error: "Card não encontrado" }, { status: 404 });
+  }
+
+  const novaData = body.data ? new Date(body.data + "T00:00:00.000Z") : existente.data;
+  if (!existente.cancelado) {
+    const conflito = await validarEscalacao(
+      { data: novaData, motorista: body.motorista || null, ajudante: body.ajudante || null },
+      existente
+    );
+    if (conflito) {
+      return NextResponse.json({ error: conflito }, { status: 409 });
+    }
   }
 
   const data: Prisma.CardUpdateInput = {
@@ -125,6 +137,26 @@ export async function PATCH(
       { error: "Nenhum campo válido para atualizar" },
       { status: 400 }
     );
+  }
+
+  // Bloqueia escalar alguém indisponível: ao mudar o dia, a equipe ou reativar o card.
+  // Card cancelado não ocupa ninguém, e trocar só sinaleiros nunca é bloqueado.
+  const cancelado = typeof body.cancelado === "boolean" ? body.cancelado : existente.cancelado;
+  const reativando = existente.cancelado && body.cancelado === false;
+  const mudouEscala =
+    data.data !== undefined || data.motorista !== undefined || data.ajudante !== undefined;
+  if (!cancelado && (reativando || mudouEscala)) {
+    const conflito = await validarEscalacao(
+      {
+        data: (data.data as Date | undefined) ?? existente.data,
+        motorista: data.motorista !== undefined ? (data.motorista as string | null) : existente.motorista,
+        ajudante: data.ajudante !== undefined ? (data.ajudante as string | null) : existente.ajudante,
+      },
+      reativando ? null : existente
+    );
+    if (conflito) {
+      return NextResponse.json({ error: conflito }, { status: 409 });
+    }
   }
 
   const card = await prisma.card.update({
