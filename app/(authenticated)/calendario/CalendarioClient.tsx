@@ -28,6 +28,8 @@ import {
   GripVertical,
 } from "lucide-react";
 import { CardForm, type CardData } from "@/components/CardForm";
+import { SelecaoMultipla } from "@/components/SelecaoMultipla";
+import { TEMPORARIA, normalizarPessoaFormulario } from "@/lib/pessoas";
 import {
   formatarData,
   chaveData,
@@ -36,6 +38,7 @@ import {
   TIPO_BADGE_TV,
   ATENDIMENTO_BADGE,
   TIPO_LABELS,
+  MOTORISTAS,
   SINALEIRO_CAMPOS,
   SINALEIRO_COR,
   SINALEIRO_LABELS,
@@ -708,19 +711,35 @@ function CardModal({
         {/* Edição inline de equipe */}
         <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
           <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Equipe</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              value={motorista}
-              onChange={(e) => setMotorista(e.target.value)}
-              placeholder="Motorista"
-              className={campoInput}
-            />
-            <input
-              value={ajudante}
-              onChange={(e) => setAjudante(e.target.value)}
-              placeholder="Ajudante"
-              className={campoInput}
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1 text-xs font-medium text-slate-600">Motorista</p>
+              <SelecaoMultipla
+                key={`m-${card.id}`}
+                valor={card.motorista ?? ""}
+                opcoes={MOTORISTAS}
+                onChange={setMotorista}
+                classeCampo={campoInput}
+                rotuloAdicionar="Adicionar motorista"
+                rotuloRemover="Remover motorista"
+                normalizar={normalizarPessoaFormulario}
+                temporaria={TEMPORARIA}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium text-slate-600">Ajudante</p>
+              <SelecaoMultipla
+                key={`a-${card.id}`}
+                valor={card.ajudante ?? ""}
+                opcoes={MOTORISTAS}
+                onChange={setAjudante}
+                classeCampo={campoInput}
+                rotuloAdicionar="Adicionar ajudante"
+                rotuloRemover="Remover ajudante"
+                normalizar={normalizarPessoaFormulario}
+                temporaria={TEMPORARIA}
+              />
+            </div>
           </div>
           <button
             onClick={salvarEquipe}

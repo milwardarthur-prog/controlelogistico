@@ -544,7 +544,7 @@ export function DashboardClient() {
             {/* Produtividade dos motoristas */}
             <Secao
               titulo="Produtividade dos motoristas"
-              subtitulo="Serviços realizados (não cancelados, de qualquer tipo) por motorista. Cinza: outros/externos. Serviço com dois motoristas conta para cada um."
+              subtitulo="Serviços realizados (não cancelados, de qualquer tipo) por motorista. Cinza: temporários e quem não está na lista. Serviço com dois motoristas conta para cada um."
             >
               {visao === "graficos" ? (
                 <ListaBarras

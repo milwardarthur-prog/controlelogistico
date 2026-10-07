@@ -114,21 +114,32 @@ export const VEICULOS = [
   "Outro",
 ] as const;
 
+// Pessoas que podem ser escaladas como motorista/técnico ou ajudante.
 export const MOTORISTAS = [
-  "Pablio",
-  "Sebastião",
-  "Gilsimar",
   "Alex",
-  "Ricardo",
-  "Valmir",
-  "Henrique",
-  "Windson",
-  "Lucas",
-  "Eduardo",
-  "Nicolas",
+  "Arthur",
   "Diego",
-  "Outro/Externo",
+  "Eduardo",
+  "Gilsimar",
+  "Laércio",
+  "Leonardo",
+  "Lucas M.",
+  "Lucas O.",
+  "Luiz Henrique",
+  "Nicolas",
+  "Pablio",
+  "Ricardo",
+  "Rogério",
+  "Sebastião",
+  "Valmir",
+  "Vitor",
+  "Windson",
 ] as const;
+
+// Opção de emergência para quem não está na lista: o nome digitado é guardado
+// no mesmo campo, com este prefixo ("Temporário: João").
+export const PESSOA_TEMPORARIA = "Outro/Temporário";
+export const PREFIXO_TEMPORARIO = "Temporário: ";
 
 export type TipoAtendimento = "EVENTO" | "OBRA" | "DESLIGAMENTO";
 

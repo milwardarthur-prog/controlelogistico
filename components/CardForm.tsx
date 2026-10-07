@@ -11,6 +11,7 @@ import {
   type TipoAtendimento,
 } from "@/lib/utils";
 import { SelecaoMultipla } from "@/components/SelecaoMultipla";
+import { TEMPORARIA, normalizarPessoaFormulario } from "@/lib/pessoas";
 
 export type CardData = {
   id?: string;
@@ -210,12 +211,22 @@ export function CardForm({ inicial, onSuccess, onCancel }: Props) {
             classeCampo={campo}
             rotuloAdicionar="Adicionar motorista"
             rotuloRemover="Remover motorista"
-            permiteRepetir={["Outro/Externo"]}
+            normalizar={normalizarPessoaFormulario}
+            temporaria={TEMPORARIA}
           />
         </div>
         <div>
           <label className={label}>Ajudante</label>
-          <input value={form.ajudante} onChange={(e) => set("ajudante", e.target.value)} className={campo} />
+          <SelecaoMultipla
+            valor={form.ajudante}
+            opcoes={MOTORISTAS}
+            onChange={(v) => set("ajudante", v)}
+            classeCampo={campo}
+            rotuloAdicionar="Adicionar ajudante"
+            rotuloRemover="Remover ajudante"
+            normalizar={normalizarPessoaFormulario}
+            temporaria={TEMPORARIA}
+          />
         </div>
       </div>
 

@@ -1,4 +1,6 @@
-import { MOTORISTAS, TIPO_LABELS, VEICULOS, type TipoCard } from "@/lib/utils";
+import { PESSOA_TEMPORARIA, TIPO_LABELS, VEICULOS, type TipoCard } from "@/lib/utils";
+import { distancia, semAcento } from "@/lib/texto";
+import { pessoasDoTexto } from "@/lib/pessoas";
 
 export type CardDash = {
   id: string;
@@ -167,24 +169,6 @@ export function contarPorTipo(cards: CardDash[], incluir: (c: CardDash) => boole
 
 // ---------- Texto livre -> categorias ----------
 
-const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
-
-// Distância de edição com transposição (pega "CLINETE" ~ "CLIENTE").
-function distancia(a: string, b: string): number {
-  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i]);
-  for (let j = 1; j <= b.length; j++) d[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const custo = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + custo);
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
-      }
-    }
-  }
-  return d[a.length][b.length];
-}
-
 // ---------- Veículos ----------
 
 const CANON = VEICULOS.filter((v) => v !== "Outro").map((nome) => ({
@@ -255,39 +239,12 @@ export function rankingVeiculos(cards: CardDash[]): {
 
 // ---------- Motoristas ----------
 
-const MOTORISTA_EXTERNO = "Outro/Externo";
-
-const MOTORISTAS_CANON = MOTORISTAS.filter((m) => m !== MOTORISTA_EXTERNO).map((nome) => ({
-  nome: nome as string,
-  chave: semAcento(nome).toUpperCase(),
-}));
-
-// Grafias antigas que são a mesma pessoa de um motorista da lista.
-const APELIDOS_MOTORISTA: Record<string, string> = {
-  ALEXSANDER: "Alex",
-  SIMAR: "Gilsimar",
-};
-
-function classificarMotorista(parte: string): string {
-  const p = semAcento(parte).toUpperCase().replace(/s+/g, " ").trim();
-  if (p === semAcento(MOTORISTA_EXTERNO).toUpperCase()) return MOTORISTA_EXTERNO;
-  // Casa por nome inteiro dentro do texto ("LUIZ HENRIQUE" -> Henrique) ou com 1 letra
-  // de diferença em nomes longos ("SEBASTIÇAO" -> Sebastião). O resto vira Outro/Externo.
-  for (const token of p.split(" ")) {
-    if (APELIDOS_MOTORISTA[token]) return APELIDOS_MOTORISTA[token];
-    const canon = MOTORISTAS_CANON.find(
-      (c) => c.chave === token || (token.length >= 5 && c.chave.length >= 5 && distancia(token, c.chave) <= 1)
-    );
-    if (canon) return canon.nome;
-  }
-  return MOTORISTA_EXTERNO;
-}
-
+// Pessoas da lista oficial pelo nome; temporários e textos antigos que não batem
+// com ninguém da lista caem juntos em "Outro/Temporário".
 export function normalizarMotoristas(texto?: string | null): string[] {
-  if (!texto || !texto.trim()) return [];
   const resultado = new Set<string>();
-  for (const parte of texto.split(/s*[/+,&]s*|s+Es+/i)) {
-    if (parte.trim()) resultado.add(classificarMotorista(parte));
+  for (const p of pessoasDoTexto(texto)) {
+    resultado.add(p.tipo === "lista" ? p.nome : PESSOA_TEMPORARIA);
   }
   return Array.from(resultado);
 }
@@ -323,7 +280,7 @@ export function rankingMotoristas(cards: CardDash[]): {
       servicos: g.servicos,
       dias: g.datas.size,
       media: g.datas.size ? g.servicos / g.datas.size : 0,
-      interno: nome !== MOTORISTA_EXTERNO,
+      interno: nome !== PESSOA_TEMPORARIA,
     }))
     .sort((a, b) => b.servicos - a.servicos || a.nome.localeCompare(b.nome, "pt-BR"));
 
