@@ -10,6 +10,7 @@ import {
   History,
   Wrench,
   LayoutDashboard,
+  Users,
   Tv,
   LogOut,
   Truck,
@@ -50,6 +51,7 @@ export function Sidebar({ role, nome }: Props) {
 
   const itens = [
     { href: "/calendario", label: "Calendário", icon: Calendar, roles: ["ADMIN", "TECNICO"] },
+    { href: "/escala", label: "Escala", icon: Users, roles: ["ADMIN", "TECNICO"] },
     { href: "/impressao", label: "Impressão", icon: Printer, roles: ["ADMIN"] },
     { href: "/historico", label: "Histórico", icon: History, roles: ["ADMIN", "TECNICO"] },
     { href: "/manutencao", label: "Manutenção", icon: Wrench, roles: ["ADMIN", "TECNICO"] },

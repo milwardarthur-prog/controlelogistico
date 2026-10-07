@@ -49,7 +49,7 @@ import {
   type SinaleiroCampo,
 } from "@/lib/utils";
 
-type Card = {
+export type Card = {
   id: string;
   tipo: TipoCard;
   tipoAtendimento: TipoAtendimento;
@@ -550,7 +550,7 @@ function ModalWrapper({
 }
 
 // --- Modal de detalhe/edição/ações do card ---
-function CardModal({
+export function CardModal({
   card,
   onClose,
   onChanged,

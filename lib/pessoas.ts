@@ -63,6 +63,14 @@ export function pessoasDoTexto(texto?: string | null): Pessoa[] {
   return resultado;
 }
 
+// Pessoas -> texto no formato gravado no card ("Pablio + Temporário: João").
+export function textoDePessoas(pessoas: Pessoa[]): string {
+  return pessoas
+    .filter((p) => p.nome.trim() !== "")
+    .map((p) => (p.tipo === "temporario" ? PREFIXO_TEMPORARIO + p.nome : p.nome))
+    .join(" + ");
+}
+
 // Como cada nome antigo deve aparecer ao abrir um card no formulário.
 export function normalizarPessoaFormulario(parte: string): string {
   const p = resolverPessoa(parte);

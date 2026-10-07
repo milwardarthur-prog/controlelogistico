@@ -7,6 +7,7 @@ export const config = {
     "/dashboard/:path*",
     "/cards/:path*",
     "/calendario/:path*",
+    "/escala/:path*",
     "/impressao/:path*",
     "/historico/:path*",
     "/manutencao/:path*",
