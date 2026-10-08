@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X,
   Wrench,
+  UserX,
   Plus,
   Pencil,
   Copy,
@@ -137,6 +138,7 @@ export function CalendarioClient() {
   const [offset, setOffset] = useState(0); // semanas a partir da atual
   const [cards, setCards] = useState<Card[]>([]);
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
+  const [indisponiveis, setIndisponiveis] = useState<{ pessoa: string; data: string }[]>([]);
   const [cardSelecionado, setCardSelecionado] = useState<Card | null>(null);
   const [novoModalData, setNovoModalData] = useState<string | null>(null); // data pré-preenchida
   const [novoAberto, setNovoAberto] = useState(false);
@@ -169,12 +171,14 @@ export function CalendarioClient() {
   const fim = useMemo(() => dias[6].toISOString().slice(0, 10), [dias]);
 
   const carregar = useCallback(async () => {
-    const [resCards, resManut] = await Promise.all([
+    const [resCards, resManut, resIndisp] = await Promise.all([
       fetch(`/api/cards?inicio=${inicio}&fim=${fim}`, { cache: "no-store" }),
       fetch(`/api/manutencao`, { cache: "no-store" }),
+      fetch(`/api/indisponibilidade?inicio=${inicio}&fim=${fim}`, { cache: "no-store" }),
     ]);
     if (resCards.ok) setCards(await resCards.json());
     if (resManut.ok) setManutencoes(await resManut.json());
+    if (resIndisp.ok) setIndisponiveis(await resIndisp.json());
   }, [inicio, fim]);
 
   useEffect(() => {
@@ -198,6 +202,17 @@ export function CalendarioClient() {
     }
     return map;
   }, [cards]);
+
+  // Mapa data(iso) -> técnicos indisponíveis no dia
+  const indisponiveisPorDia = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const i of indisponiveis) {
+      const lista = map.get(i.data) ?? [];
+      lista.push(i.pessoa);
+      map.set(i.data, lista);
+    }
+    return map;
+  }, [indisponiveis]);
 
   const manutencaoDoDia = useCallback(
     (iso: string) =>
@@ -319,6 +334,7 @@ export function CalendarioClient() {
             const iso = d.toISOString().slice(0, 10);
             const lista = porDia.get(iso) ?? [];
             const manuts = manutencaoDoDia(iso);
+            const tecnicosFora = indisponiveisPorDia.get(iso) ?? [];
             const isHoje = iso === hojeIso;
             return (
               <DroppableDay
@@ -339,6 +355,7 @@ export function CalendarioClient() {
                     <span className="truncate">{m.veiculo}</span>
                   </div>
                 ))}
+                <TarjasIndisponiveis nomes={tecnicosFora} />
                 {lista.map((c) => (
                   <DraggableCard
                     key={c.id}
@@ -346,7 +363,7 @@ export function CalendarioClient() {
                     onClick={() => setCardSelecionado(c)}
                   />
                 ))}
-                {lista.length === 0 && manuts.length === 0 && (
+                {lista.length === 0 && manuts.length === 0 && tecnicosFora.length === 0 && (
                   <p className="mt-2 text-center text-[11px] text-slate-300">—</p>
                 )}
               </DroppableDay>
@@ -368,6 +385,9 @@ export function CalendarioClient() {
         ))}
         <span className="flex items-center gap-1">
           <Wrench className="h-3 w-3 text-red-600" /> Manutenção de veículo
+        </span>
+        <span className="flex items-center gap-1">
+          <UserX className="h-3 w-3 text-orange-600" /> Técnico indisponível
         </span>
       </div>
 
@@ -399,6 +419,31 @@ export function CalendarioClient() {
         />
       )}
     </div>
+  );
+}
+
+// --- Tarjas de técnicos indisponíveis no dia (laranja, para não confundir com manutenção de veículo) ---
+function TarjasIndisponiveis({ nomes }: { nomes: string[] }) {
+  if (nomes.length === 0) return null;
+  const tarja =
+    "flex items-center gap-1 rounded bg-orange-600 px-1.5 py-0.5 text-[10px] font-bold text-white";
+  if (nomes.length > 3) {
+    return (
+      <div className={tarja} title={`Indisponíveis: ${nomes.join(", ")}`}>
+        <UserX className="h-2.5 w-2.5 flex-shrink-0" />
+        <span className="truncate">{nomes.length} indisponíveis</span>
+      </div>
+    );
+  }
+  return (
+    <>
+      {nomes.map((nome) => (
+        <div key={nome} className={tarja} title={`${nome} indisponível`}>
+          <UserX className="h-2.5 w-2.5 flex-shrink-0" />
+          <span className="truncate">{nome}</span>
+        </div>
+      ))}
+    </>
   );
 }
 
