@@ -5,6 +5,8 @@ import {
   type TipoCard,
   type TipoAtendimento,
 } from "@/lib/utils";
+import { pessoasParaExibicao } from "@/lib/pessoas";
+import { veiculoParaExibicao } from "@/lib/veiculos";
 
 export type CardExport = {
   id: string;
@@ -62,14 +64,14 @@ export async function exportarHistoricoExcel(cards: CardExport[]) {
     ws.addRow({
       data: formatarData(c.data),
       horario: c.horario,
-      veiculo: c.veiculo ?? "",
+      veiculo: veiculoParaExibicao(c.veiculo),
       tipo: labelTipo(c.tipo),
       atend: labelAtendimento(c.tipoAtendimento),
       cliente: c.cliente,
       equip: c.equipamento,
       local: c.local,
-      motorista: c.motorista ?? "",
-      ajudante: c.ajudante ?? "",
+      motorista: pessoasParaExibicao(c.motorista),
+      ajudante: pessoasParaExibicao(c.ajudante),
       acess: c.acessorios ?? "",
       obs: c.obs ?? "",
       cancelado: c.cancelado ? "Sim" : "Não",

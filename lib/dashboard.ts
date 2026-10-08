@@ -1,6 +1,6 @@
-import { PESSOA_TEMPORARIA, TIPO_LABELS, VEICULOS, type TipoCard } from "@/lib/utils";
-import { distancia, semAcento } from "@/lib/texto";
+import { PESSOA_TEMPORARIA, TIPO_LABELS, VEICULO_TERCEIRO, type TipoCard } from "@/lib/utils";
 import { pessoasDoTexto } from "@/lib/pessoas";
+import { veiculosDoTexto } from "@/lib/veiculos";
 
 export type CardDash = {
   id: string;
@@ -167,49 +167,18 @@ export function contarPorTipo(cards: CardDash[], incluir: (c: CardDash) => boole
     .sort((a, b) => b.valor - a.valor);
 }
 
-// ---------- Texto livre -> categorias ----------
-
 // ---------- Veículos ----------
 
-const CANON = VEICULOS.filter((v) => v !== "Outro").map((nome) => ({
-  nome: nome as string,
-  chave: semAcento(nome).toUpperCase(),
-}));
+const VEICULO_NAO_IDENTIFICADO = "Não identificado";
 
-const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-function classificarVeiculo(p: string): string {
-  const exato = CANON.find((c) => c.chave === p);
-  if (exato) return exato.nome;
-
-  if (p.startsWith("CARRETINHA")) {
-    if (/MAIOR|\b0?1\b/.test(p)) return "Carretinha 1 (Maior)";
-    if (/MENOR|\b0?2\b/.test(p)) return "Carretinha 2 (Menor)";
-    return "Outro";
-  }
-
-  for (const c of CANON) {
-    const re = new RegExp(`(^|[^A-Z0-9-])${escapeRegex(c.chave)}($|[^A-Z0-9-])`);
-    if (re.test(p)) return c.nome;
-  }
-
-  if (/^[A-Z]+$/.test(p)) {
-    for (const c of CANON) {
-      if (c.chave.length >= 5 && /^[A-Z]+$/.test(c.chave) && distancia(p, c.chave) <= 1) return c.nome;
-    }
-  }
-  return "Outro";
-}
-
-// "24-250 + BONGO" -> ["24-250", "Bongo"]; textos antigos fora do padrão são
-// aproximados da lista oficial; o que não bate vira "Outro".
+// "24-250 + BONGO" -> ["24-250", "Bongo"]. Veículos de terceiro (novos e antigos) caem em
+// "Veículo de terceiro"; textos antigos que não batem com a frota, em "Não identificado".
 export function normalizarVeiculos(texto?: string | null): string[] {
-  if (!texto || !texto.trim()) return [];
-  const partes = semAcento(texto).toUpperCase().replace(/\bP\//g, "P ").split(/[+,/]/);
   const resultado = new Set<string>();
-  for (const bruta of partes) {
-    const p = bruta.replace(/\s*-\s*/g, "-").replace(/\s+/g, " ").trim();
-    if (p) resultado.add(classificarVeiculo(p));
+  for (const v of veiculosDoTexto(texto)) {
+    resultado.add(
+      v.tipo === "lista" ? v.nome : v.tipo === "terceiro" ? VEICULO_TERCEIRO : VEICULO_NAO_IDENTIFICADO
+    );
   }
   return Array.from(resultado);
 }
@@ -232,7 +201,11 @@ export function rankingVeiculos(cards: CardDash[]): {
     for (const v of veiculos) mapa.set(v, (mapa.get(v) ?? 0) + 1);
   }
   const linhas = Array.from(mapa.entries())
-    .map(([nome, valor]) => ({ nome, valor, frota: nome !== "Cliente" && nome !== "Outro" }))
+    .map(([nome, valor]) => ({
+      nome,
+      valor,
+      frota: nome !== VEICULO_TERCEIRO && nome !== VEICULO_NAO_IDENTIFICADO,
+    }))
     .sort((a, b) => b.valor - a.valor || a.nome.localeCompare(b.nome, "pt-BR", { numeric: true }));
   return { linhas, naoInformado, total: cards.length };
 }

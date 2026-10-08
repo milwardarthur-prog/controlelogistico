@@ -71,6 +71,14 @@ export function textoDePessoas(pessoas: Pessoa[]): string {
     .join(" + ");
 }
 
+// Como a equipe aparece no Histórico e no Excel (o banco não é alterado).
+export function pessoasParaExibicao(texto?: string | null): string {
+  return pessoasDoTexto(texto)
+    .map((p) => (p.tipo === "temporario" ? (p.nome ? PREFIXO_TEMPORARIO + p.nome : "") : p.nome))
+    .filter(Boolean)
+    .join(" + ");
+}
+
 // Como cada nome antigo deve aparecer ao abrir um card no formulário.
 export function normalizarPessoaFormulario(parte: string): string {
   const p = resolverPessoa(parte);

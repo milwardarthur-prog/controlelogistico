@@ -12,6 +12,8 @@ import {
   type TipoCard,
 } from "@/lib/utils";
 import { exportarHistoricoExcel, type CardExport } from "@/lib/exportarHistorico";
+import { pessoasParaExibicao } from "@/lib/pessoas";
+import { veiculoParaExibicao } from "@/lib/veiculos";
 
 type Card = CardExport;
 
@@ -63,7 +65,7 @@ export function HistoricoClient() {
           return false;
         if (
           motorista &&
-          !(c.motorista ?? "").toLowerCase().includes(motorista.toLowerCase())
+          !pessoasParaExibicao(c.motorista).toLowerCase().includes(motorista.toLowerCase())
         )
           return false;
         if (tipo && c.tipo !== tipo) return false;
@@ -216,9 +218,9 @@ export function HistoricoClient() {
                   </td>
                   <td className="px-3 py-2 font-medium text-slate-800">{c.cliente}</td>
                   <td className="px-3 py-2 text-slate-600">{c.equipamento}</td>
-                  <td className="px-3 py-2 text-slate-600">{c.veiculo || "—"}</td>
-                  <td className="px-3 py-2 text-slate-600">{c.motorista || "—"}</td>
-                  <td className="px-3 py-2 text-slate-600">{c.ajudante || "—"}</td>
+                  <td className="px-3 py-2 text-slate-600">{veiculoParaExibicao(c.veiculo) || "—"}</td>
+                  <td className="px-3 py-2 text-slate-600">{pessoasParaExibicao(c.motorista) || "—"}</td>
+                  <td className="px-3 py-2 text-slate-600">{pessoasParaExibicao(c.ajudante) || "—"}</td>
                   <td className="px-3 py-2 text-slate-500">{c.createdBy?.name ?? "—"}</td>
                 </tr>
               ))}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils";
 import { SelecaoMultipla } from "@/components/SelecaoMultipla";
 import { TEMPORARIA, normalizarPessoaFormulario } from "@/lib/pessoas";
+import { TERCEIRO, normalizarVeiculoFormulario } from "@/lib/veiculos";
 
 export type CardData = {
   id?: string;
@@ -174,7 +175,8 @@ export function CardForm({ inicial, onSuccess, onCancel }: Props) {
             classeCampo={campo}
             rotuloAdicionar="Adicionar veículo"
             rotuloRemover="Remover veículo"
-            permiteRepetir={["Outro"]}
+            normalizar={normalizarVeiculoFormulario}
+            temporaria={TERCEIRO}
           />
         </div>
         <div>

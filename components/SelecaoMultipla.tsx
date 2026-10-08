@@ -6,7 +6,7 @@ import { semAcento } from "@/lib/texto";
 
 export const SEPARADOR_MULTIPLA = " + ";
 
-type Temporaria = { rotulo: string; prefixo: string };
+type Temporaria = { rotulo: string; prefixo: string; placeholder?: string };
 
 type Props = {
   valor: string;
@@ -129,10 +129,10 @@ export function SelecaoMultipla({
                 value={nomeTemp(selecionado)}
                 onChange={(e) => {
                   const proximos = [...itens];
-                  proximos[i] = temporaria!.prefixo + e.target.value.replace(/[+/&,]/g, "");
+                  proximos[i] = temporaria!.prefixo + e.target.value.replace(/[+/&,]/g, " ");
                   atualizar(proximos);
                 }}
-                placeholder="Nome da pessoa"
+                placeholder={temporaria!.placeholder ?? "Nome da pessoa"}
                 className={classeCampo}
               />
             )}

@@ -99,6 +99,8 @@ export const TIPO_COR: Record<TipoCard, string> = {
   ABASTECIMENTO: "lime",
 };
 
+// Frota da BeltLoc. Veículo de terceiro (do cliente, alugado, guincho...) não entra aqui:
+// usa a opção abaixo, que abre um campo para digitar qual é ("Terceiro: HR Lubrate").
 export const VEICULOS = [
   "Bongo",
   "HR",
@@ -106,13 +108,17 @@ export const VEICULOS = [
   "15-180",
   "17-180",
   "24-250",
-  "Carretinha 1 (Maior)",
-  "Carretinha 2 (Menor)",
+  "Carretinha Maior",
+  "Carretinha Menor",
   "Ranger",
   "Saveiro",
-  "Cliente",
-  "Outro",
+  "Ford Ka",
+  "Gol",
+  "Uno",
 ] as const;
+
+export const VEICULO_TERCEIRO = "Veículo de terceiro";
+export const PREFIXO_TERCEIRO = "Terceiro: ";
 
 // Pessoas que podem ser escaladas como motorista/técnico ou ajudante.
 export const MOTORISTAS = [
