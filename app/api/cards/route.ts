@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { validarEscalacao } from "@/lib/indisponibilidade";
+import { nomeDoUsuario, registrarAtividade, resumoCard } from "@/lib/atividades";
 import { TipoCard, TipoAtendimento, Prisma } from "@prisma/client";
 
 // GET /api/cards — lista cards, com filtro opcional por intervalo de datas.
@@ -90,6 +91,14 @@ export async function POST(req: NextRequest) {
       numeroOrcamento: body.numeroOrcamento || null,
     },
     include: { createdBy: { select: { name: true } } },
+  });
+
+  await registrarAtividade({
+    usuario: nomeDoUsuario(session),
+    acao: "CRIOU",
+    entidade: "CARD",
+    resumo: resumoCard(card),
+    cardId: card.id,
   });
 
   return NextResponse.json(card, { status: 201 });

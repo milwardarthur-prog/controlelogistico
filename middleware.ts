@@ -8,6 +8,7 @@ export const config = {
     "/cards/:path*",
     "/calendario/:path*",
     "/escala/:path*",
+    "/atividades/:path*",
     "/impressao/:path*",
     "/historico/:path*",
     "/manutencao/:path*",

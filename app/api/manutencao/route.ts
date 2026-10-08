@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nomeDoUsuario, registrarAtividade } from "@/lib/atividades";
+import { formatarData } from "@/lib/utils";
 
 // GET /api/manutencao — lista todas as manutenções de veículos.
 export async function GET() {
@@ -39,6 +41,14 @@ export async function POST(req: NextRequest) {
       fim: new Date(body.fim + "T23:59:59.999Z"),
       obs: body.obs || null,
     },
+  });
+
+  await registrarAtividade({
+    usuario: nomeDoUsuario(session),
+    acao: "MANUTENCAO_CRIADA",
+    entidade: "MANUTENCAO",
+    resumo: `${manutencao.veiculo} · ${formatarData(manutencao.inicio)} a ${formatarData(manutencao.fim)}`,
+    detalhes: manutencao.obs,
   });
 
   return NextResponse.json(manutencao, { status: 201 });

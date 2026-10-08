@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import {
   Calendar,
+  ClipboardList,
   Printer,
   History,
   Wrench,
@@ -56,6 +57,7 @@ export function Sidebar({ role, nome }: Props) {
     { href: "/historico", label: "Histórico", icon: History, roles: ["ADMIN", "TECNICO"] },
     { href: "/manutencao", label: "Manutenção", icon: Wrench, roles: ["ADMIN", "TECNICO"] },
     { href: "/dashboard", label: "Dashboards", icon: LayoutDashboard, roles: ["ADMIN"] },
+    { href: "/atividades", label: "Atividades", icon: ClipboardList, roles: ["ADMIN"] },
   ].filter((i) => i.roles.includes(role));
 
   return (

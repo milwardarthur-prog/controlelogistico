@@ -95,6 +95,20 @@ model IndisponibilidadeTecnico {
   @@index([data])
 }
 
+// Registro de quem (qual login) fez cada ação no sistema. Vale só daqui para frente.
+model Atividade {
+  id        String   @id @default(cuid())
+  usuario   String
+  acao      String
+  entidade  String
+  resumo    String
+  detalhes  String?
+  cardId    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model ManutencaoVeiculo {
   id        String   @id @default(cuid())
   veiculo   String

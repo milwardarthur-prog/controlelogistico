@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { MOTORISTAS } from "@/lib/utils";
 import { pessoasDaLista } from "@/lib/indisponibilidade";
+import { nomeDoUsuario, registrarAtividade } from "@/lib/atividades";
+import { MOTORISTAS, formatarData } from "@/lib/utils";
+
+const periodoTexto = (a: Date, b: Date) =>
+  a.getTime() === b.getTime() ? formatarData(a) : `${formatarData(a)} a ${formatarData(b)}`;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const MS_DIA = 86400000;
@@ -75,6 +79,12 @@ export async function POST(req: NextRequest) {
     await prisma.indisponibilidadeTecnico.deleteMany({
       where: { pessoa, data: { gte: inicio, lte: fim } },
     });
+    await registrarAtividade({
+      usuario: nomeDoUsuario(session),
+      acao: "DISPONIVEL",
+      entidade: "INDISPONIBILIDADE",
+      resumo: `${pessoa} · ${periodoTexto(inicio, fim)}`,
+    });
     return NextResponse.json({ ok: true, conflitos: [] });
   }
 
@@ -82,6 +92,13 @@ export async function POST(req: NextRequest) {
   await prisma.indisponibilidadeTecnico.createMany({
     data: datas.map((data) => ({ pessoa, data })),
     skipDuplicates: true,
+  });
+
+  await registrarAtividade({
+    usuario: nomeDoUsuario(session),
+    acao: "INDISPONIVEL",
+    entidade: "INDISPONIBILIDADE",
+    resumo: `${pessoa} · ${periodoTexto(inicio, fim)}`,
   });
 
   const cards = await prisma.card.findMany({

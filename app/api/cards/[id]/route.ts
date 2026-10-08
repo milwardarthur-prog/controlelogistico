@@ -3,9 +3,28 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { validarEscalacao } from "@/lib/indisponibilidade";
+import { descreverMudancas, nomeDoUsuario, registrarAtividade, resumoCard } from "@/lib/atividades";
 import { TipoCard, TipoAtendimento, SinaleiroStatus, Prisma } from "@prisma/client";
 
 const incluirCriador = { createdBy: { select: { name: true } } };
+
+// Registra no histórico de atividades o que mudou entre o card antigo e o salvo.
+async function registrarMudancas(
+  session: Parameters<typeof nomeDoUsuario>[0],
+  antes: Parameters<typeof descreverMudancas>[0] & Parameters<typeof resumoCard>[0],
+  depois: Parameters<typeof descreverMudancas>[1] & Parameters<typeof resumoCard>[0] & { id: string }
+) {
+  const mudanca = descreverMudancas(antes, depois);
+  if (!mudanca) return;
+  await registrarAtividade({
+    usuario: nomeDoUsuario(session),
+    acao: mudanca.acao,
+    entidade: "CARD",
+    resumo: resumoCard(depois),
+    detalhes: mudanca.detalhes,
+    cardId: depois.id,
+  });
+}
 
 // Valores válidos do enum de sinaleiro
 const SINALEIRO_VALIDOS: SinaleiroStatus[] = [
@@ -90,6 +109,7 @@ export async function PUT(
     include: incluirCriador,
   });
 
+  await registrarMudancas(session, existente, card);
   return NextResponse.json(card);
 }
 
@@ -165,6 +185,7 @@ export async function PATCH(
     include: incluirCriador,
   });
 
+  await registrarMudancas(session, existente, card);
   return NextResponse.json(card);
 }
 
@@ -178,6 +199,16 @@ export async function DELETE(
   if (!session) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+  const existente = await prisma.card.findUnique({ where: { id: params.id } });
   await prisma.card.delete({ where: { id: params.id } });
+  if (existente) {
+    await registrarAtividade({
+      usuario: nomeDoUsuario(session),
+      acao: "EXCLUIU",
+      entidade: "CARD",
+      resumo: resumoCard(existente),
+      cardId: existente.id,
+    });
+  }
   return NextResponse.json({ ok: true });
 }
